@@ -43,6 +43,19 @@ jobs:
         if: steps.requests.outputs.has_requests == 'true'
         run: python -m pip install --disable-pip-version-check --no-cache-dir 'qrcode[pil]' opencv-python-headless numpy
 
+      - name: Self-test generator from Master
+        if: steps.requests.outputs.has_requests == 'true'
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, ".")
+          from tools.generate_coupon import MASTER, transform_master, decode_qr_from_html
+          master = MASTER.read_text(encoding="utf-8")
+          html = transform_master(master, "MK999999")
+          decode_qr_from_html(html, "MK999999")
+          print("Generator self-test passed.")
+          PY
+
       - name: Generate requested coupons from Master
         if: steps.requests.outputs.has_requests == 'true'
         shell: bash
