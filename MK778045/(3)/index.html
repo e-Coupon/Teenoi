@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0">
+<script>
+(async()=>{
+  const masterUrl="/Teenoi/MK00000/%283%29/";
+  const qr="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASIAAAEiAQAAAAB1xeIbAAABh0lEQVR4nO2YMW6EMBRE34+RUpob5Chws1wNHyU3MGUk0KSwvZtskzQsBL4rME/yyELj8Zj4faSXP0DglFNOOeXU0Smro8OsBxvnNjPuqusS1CBJyqCJ1YAgSdJP6vm6LkHN7R8fProyY2bd/rquRNn47BWduo3UP3vFy1LNVqKAGSBmDOD7peuo6k9BJTMz67n5/Vpizt66Tk3ZQ6dgEJZHyDuFDSkbqake4tLifn87eo+t/r9SlByvHARxoT4RatyXJE1HVX8SajWYX1VzTlwg9cHvVk+g0tuCpE+z97waQ14NWL1T2JJqnnM3HkDKwJBrseCesw31Y++lYvql3pnwvd+UKnerluPDAnOHmHsg5v10XYi695iS6oE75P11XYJqPaaNc4eNBJGsw8addZ2Z6h7eld7qtVYld+6k65JU6XPiAslepekouk5IVYMfWsbU1HIOxPbBc84mVPWcVNwlYENeS84Rc7Ocw6r/31TZ+3uZKQiqdX68TR9VvVNOOeWUU3+lvgBf8sxn6BelHgAAAABJRU5ErkJggg==";
+  const r=await fetch(masterUrl,{cache:"no-store"});
+  let h=await r.text();
+  h=h.replaceAll("MK00000","MK778045").replaceAll("mk00000","mk778045");
+  h=h.replace(/(<img id="qr" src="data:image\/png;base64,)[^"]*(" alt="QR Code MK778045">)/, "$1"+qr.slice(22)+"$2");
+  document.open();
+  document.write(h);
+  document.close();
+})();
+</script>
+</body>
+</html>
