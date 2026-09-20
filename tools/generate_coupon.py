@@ -126,7 +126,7 @@ def decode_qr_from_html(html: str, expected: str) -> None:
         fail(f"Generated QR decodes to {decoded!r}, expected {expected!r}")
 
 
-def generate(code: str, overwrite: bool = False) -> Path:
+def generate(code: str) -> Path:
     if not CODE_RE.fullmatch(code):
         fail(f"Invalid coupon code: {code!r}; expected MK followed by 6 digits")
     if code == "MK00000":
@@ -137,7 +137,7 @@ def generate(code: str, overwrite: bool = False) -> Path:
 
     output_dir = ROOT / code / "(3)"
     output = output_dir / "index.html"
-    if output.exists() and not overwrite:
+    if output.exists():
         fail(f"Coupon already exists: {output}. Refusing to overwrite an existing coupon.")
 
     master_html = MASTER.read_text(encoding="utf-8")
@@ -152,15 +152,10 @@ def generate(code: str, overwrite: bool = False) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("code", help="Coupon code, e.g. MK780944")
-    parser.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Only for controlled maintenance; normal generation must not overwrite.",
-    )
     args = parser.parse_args()
 
     try:
-        output = generate(args.code.upper(), overwrite=args.overwrite)
+        output = generate(args.code.upper())
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
