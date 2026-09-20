@@ -1,0 +1,80 @@
+name: Generate Teenoi coupon
+
+on:
+  push:
+    paths:
+      - 'coupon-requests/*.request'
+
+concurrency:
+  group: teenoi-coupon-generator
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for pending requests
+        id: requests
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(coupon-requests/*.request)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "has_requests=false" >> "$GITHUB_OUTPUT"
+            echo "No pending coupon requests."
+          else
+            echo "has_requests=true" >> "$GITHUB_OUTPUT"
+            printf 'Pending: %s\n' "${files[@]}"
+          fi
+
+      - name: Set up Python
+        if: steps.requests.outputs.has_requests == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install generator and QR validation dependencies
+        if: steps.requests.outputs.has_requests == 'true'
+        run: python -m pip install --disable-pip-version-check --no-cache-dir 'qrcode[pil]' opencv-python-headless numpy
+
+      - name: Generate requested coupons from Master
+        if: steps.requests.outputs.has_requests == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for request in coupon-requests/*.request; do
+            filename="$(basename "$request")"
+            code="${filename%.request}"
+            requested="$(tr -d '[:space:]' < "$request")"
+            if [ "$requested" != "$code" ]; then
+              echo "Request/content mismatch: $request contains '$requested', filename says '$code'"
+              exit 1
+            fi
+            python tools/generate_coupon.py "$code"
+          done
+
+      - name: Validate all coupons
+        if: steps.requests.outputs.has_requests == 'true'
+        run: python tools/validate_coupons.py
+
+      - name: Commit generated coupons
+        if: steps.requests.outputs.has_requests == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "teenoi-coupon-generator"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add 'MK*/(3)/index.html' coupon-requests
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "Generate Teenoi coupon(s) from Master"
+          git push
