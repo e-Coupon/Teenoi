@@ -20,7 +20,7 @@ MASTER = ROOT / "MK00000" / "(3)" / "index.html"
 CODE_RE = re.compile(r"^MK\d{6}$")
 
 
-def fail(message: str) -> "NoReturn":
+def fail(message: str) -> None:
     raise RuntimeError(message)
 
 
@@ -52,36 +52,37 @@ def transform_master(master_html: str, code: str) -> str:
 
     html = replace_once(
         html,
-        r"(<title>[^<]*?—\s*)MK00000(\s*</title>)",
+        r'''(<title>[^<]*?—\s*)MK00000(\s*</title>)''',
         rf"\g<1>{code}\g<2>",
         "title code",
     )
     html = replace_once(
         html,
-        r'(<div\s+id=["\']code["\']\s*>)[^<]*(</div>)',
+        r'''(<div\s+id=["']code["']\s*>)[^<]*(</div>)''',
         rf"\g<1>{code}\g<2>",
         "visible code",
     )
     html = replace_once(
         html,
-        r"(const\s+COUPON_KEY\s*=\s*["\']teenoi_)mk00000(_used_v3_arrow_follow_reswipe["\'];)",
+        r'''(const\s+COUPON_KEY\s*=\s*["']teenoi_)mk00000(_used_v3_arrow_follow_reswipe["'];)''',
         rf"\g<1>{code.lower()}\g<2>",
         "storage key",
     )
+
     qr_uri = qr_data_uri(code)
     html = replace_once(
         html,
-        r'(<img\s+id=["\']qr["\'][^>]*\bsrc=["\'])[^"\']*(["\'][^>]*\balt=["\'])QR\s+Code\s+MK00000(["\'])',
+        r'''(<img\s+id=["']qr["'][^>]*\bsrc=["'])[^"']*(["'][^>]*\balt=["'])QR\s+Code\s+MK00000(["'])''',
         rf"\g<1>{qr_uri}\g<2>QR Code {code}\g<3>",
         "QR image",
     )
 
-    # The template must not leak the Master code into the generated identity fields.
+    # The template must not leak the Master code into generated identity fields.
     checks = (
-        (r"<title>[^<]*</title>", "title"),
-        (r'<div\s+id=["\']code["\'][^>]*>[^<]*</div>', "visible code"),
-        (r"const\s+COUPON_KEY\s*=\s*["\'][^"\']+["\']", "storage key"),
-        (r'<img\s+id=["\']qr["\'][^>]*\balt=["\'][^"\']*["\']', "QR alt"),
+        (r'''<title>[^<]*</title>''', "title"),
+        (r'''<div\s+id=["']code["'][^>]*>[^<]*</div>''', "visible code"),
+        (r'''const\s+COUPON_KEY\s*=\s*["'][^"']+["']''', "storage key"),
+        (r'''<img\s+id=["']qr["'][^>]*\balt=["'][^"']*["']''', "QR alt"),
     )
     for pattern, label in checks:
         field = re.search(pattern, html, re.I | re.S)
@@ -93,7 +94,7 @@ def transform_master(master_html: str, code: str) -> str:
 
 def decode_qr_from_html(html: str, expected: str) -> None:
     match = re.search(
-        r'<img\s+id=["\']qr["\'][^>]*\bsrc=["\'](data:image/png;base64,[^"\']+)["\']',
+        r'''<img\s+id=["']qr["'][^>]*\bsrc=["'](data:image/png;base64,[^"']+)["']''',
         html,
         re.I | re.S,
     )
@@ -151,7 +152,11 @@ def generate(code: str, overwrite: bool = False) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("code", help="Coupon code, e.g. MK780944")
-    parser.add_argument("--overwrite", action="store_true", help="Only for controlled maintenance; normal generation must not overwrite.")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Only for controlled maintenance; normal generation must not overwrite.",
+    )
     args = parser.parse_args()
 
     try:
