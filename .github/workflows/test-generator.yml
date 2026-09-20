@@ -1,0 +1,44 @@
+name: Test Teenoi coupon generator
+
+on:
+  push:
+    paths:
+      - 'tools/generate_coupon.py'
+      - '.github/workflows/test-generator.yml'
+      - 'MK00000/(3)/index.html'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install generator test dependencies
+        run: python -m pip install --disable-pip-version-check --no-cache-dir 'qrcode[pil]' opencv-python-headless numpy
+
+      - name: Compile generator
+        run: python -m py_compile tools/generate_coupon.py
+
+      - name: Generate-and-decode self-test without writing a coupon
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, ".")
+          from tools.generate_coupon import MASTER, transform_master, decode_qr_from_html
+          master = MASTER.read_text(encoding="utf-8")
+          html = transform_master(master, "MK999999")
+          decode_qr_from_html(html, "MK999999")
+          assert "MK999999" in html
+          assert "teenoi_mk999999_used_v3_arrow_follow_reswipe" in html
+          print("Generator test passed.")
+          PY
