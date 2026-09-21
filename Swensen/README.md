@@ -1,6 +1,6 @@
 # Swensen e-Coupon
 
-Master: `Swensen/_MASTER/index.html`
+Master: `Swensen/Master/index.html`
 
 Generation flow:
 - Copy the Master.
