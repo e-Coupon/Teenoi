@@ -37,16 +37,19 @@ def barcode_data_uri(code: str) -> str:
         target = Path(td) / "barcode"
         instance = barcode.get("code128", code, writer=ImageWriter())
         options = {
-            "write_text": True,
-            "font_size": 20,
-            "text_distance": 4,
+            # The coupon already shows the code above the barcode. Keep the
+            # Code 128 image bars-only so human-readable text can never overlap
+            # the bars or be clipped by the fixed display box.
+            "write_text": False,
             "module_width": 0.33,
-            "module_height": 18.0,
-            "quiet_zone": 3.0,
+            "module_height": 24.0,
+            "quiet_zone": 5.0,
         }
         output = Path(instance.save(str(target), options))
         raw = output.read_bytes()
     # Re-encode once through Pillow so the output is a deterministic PNG.
+    # The generated image deliberately contains bars only; no text is rendered
+    # inside the barcode bitmap.
     with Image.open(io.BytesIO(raw)) as img:
         png = io.BytesIO()
         img.convert("RGB").save(png, format="PNG", optimize=True)
