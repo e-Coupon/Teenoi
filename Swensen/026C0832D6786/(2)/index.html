@@ -13,7 +13,7 @@ html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#f3f3
 .page { width:100%; min-height:100%; background:#fff; }
 .header { display:block; width:100%; height:auto; user-select:none; -webkit-user-drag:none; }
 
-/* Page 1 swipe card — same interaction model as the Teenoi template. */
+/* Page 1 swipe card. */
 #page1card { margin-top:-2vw; position:relative; background:#fff; border-radius:7vw 7vw 0 0; min-height:99vw; padding-top:8vw; box-shadow:0 -2px 8px rgba(0,0,0,.03); }
 #swipeBar { position:relative; margin:27vw 6vw 8vw; height:18vw; min-height:0; max-height:none; border-radius:12vw; background:#eee; box-shadow:0 3px 10px rgba(0,0,0,.06); display:flex; align-items:center; justify-content:center; color:#111; font-weight:700; font-size:clamp(18px,4.8vw,30px); padding-left:17vw; white-space:nowrap; }
 #arrow { position:absolute; left:4.5vw; top:1.0vw; width:18vw; height:18vw; max-width:128px; max-height:128px; min-width:56px; min-height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#e31922; box-shadow:0 4px 10px rgba(0,0,0,.13); z-index:10; touch-action:none; user-select:none; -webkit-user-select:none; transition:left .16s ease,transform .16s ease; }
@@ -27,7 +27,7 @@ html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#f3f3
 #page2wrap { background:#fff; min-height:100%; padding-bottom:10vw; }
 #couponCard { position:relative; margin-top:-2vw; background:#fff; border-radius:6vw 6vw 0 0; width:92%; margin-left:4%; padding:8vw 2vw 0; box-shadow:0 -2px 6px rgba(0,0,0,.025); }
 #code { text-align:left; padding-left:4vw; color:#111; font-size:clamp(24px,4.6vw,36px); font-weight:400; letter-spacing:.4px; line-height:1.1; }
-#barcode { display:block; width:90%; height:140px; margin:6vw auto 0; image-rendering:auto; }
+#barcode { display:block; width:90%; height:140px; margin:6vw auto 0; object-fit:contain; image-rendering:auto; }
 #expireBox { margin:3vw 0 0; background:#ffdcdc; border-radius:0 0 4vw 4vw; padding:6vw 2vw 6vw; text-align:center; }
 #expire-label { color:#df3038; font-size:clamp(18px,3.7vw,28px); line-height:1.1; font-weight:500; margin-bottom:4vw; }
 #timer { color:#e32127; font-size:clamp(34px,6.4vw,52px); line-height:1; font-weight:800; font-variant-numeric:tabular-nums; }
@@ -35,7 +35,7 @@ html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#f3f3
 #description .desc-line { display:block; white-space:nowrap; }
 #terms { display:block; width:92%; margin:6vw auto 0; height:auto; user-select:none; -webkit-user-drag:none; }
 
-/* PRESS USED — same swipe interaction and visual language as Teenoi */
+/* PRESS USED */
 #usedButton {
   position:relative; display:block; width:min(72%,360px); min-height:56px; margin:7vw auto 3vw;
   padding:12px 20px 12px 70px; border:0; border-radius:999px; background:#e31922; color:#fff;
@@ -61,7 +61,7 @@ html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#f3f3
 #page2wrap.used-state #expireBox,
 #page2wrap.used-state #description,
 #page2wrap.used-state #terms { filter:grayscale(100%); }
-/* Keep the barcode outside the grayscale set so it remains solid black and scannable. */
+/* Keep barcode solid black in USED state so it remains scannable. */
 #page2wrap.used-state #barcode { filter:none; }
 #page2wrap.used-state #timer { color:#666 !important; }
 #page2wrap.used-state #expire-label { color:#777 !important; }
