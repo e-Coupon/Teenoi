@@ -17,7 +17,7 @@ import qrcode
 
 ROOT = Path(__file__).resolve().parents[1]
 MASTER = ROOT / "MK00000" / "(3)" / "index.html"
-CODE_RE = re.compile(r"^MK\d{6}$")
+CODE_RE = re.compile(r"^MK\d+$")
 
 
 def fail(message: str) -> None:
@@ -128,7 +128,7 @@ def decode_qr_from_html(html: str, expected: str) -> None:
 
 def generate(code: str) -> Path:
     if not CODE_RE.fullmatch(code):
-        fail(f"Invalid coupon code: {code!r}; expected MK followed by 6 digits")
+        fail(f"Invalid coupon code: {code!r}; expected MK followed by one or more digits")
     if code == "MK00000":
         fail("MK00000 is the Master and cannot be generated as a coupon")
 
