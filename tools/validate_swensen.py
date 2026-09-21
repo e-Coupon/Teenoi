@@ -81,6 +81,13 @@ def validate_page(path: Path) -> None:
     if not alt_match or code not in alt_match.group(1):
         fail(path, "barcode alt text does not identify coupon code")
 
+    barcode_css = re.search(r"#barcode\s*\{([^}]*)\}", html, re.I | re.S)
+    if not barcode_css:
+        fail(path, "missing #barcode CSS")
+    css = barcode_css.group(1)
+    if "object-fit:contain" not in css.replace(" ", "") and "object-fit: contain" not in css:
+        fail(path, "#barcode must preserve its image aspect ratio with object-fit:contain")
+
     for element_id in ("page1", "page2", "arrow", "page2wrap", "barcode", "code", "timer", "usedButton"):
         if f'id="{element_id}"' not in html:
             fail(path, f"missing required element #{element_id}")
