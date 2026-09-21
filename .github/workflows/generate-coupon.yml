@@ -51,8 +51,8 @@ jobs:
           sys.path.insert(0, ".")
           from tools.generate_coupon import MASTER, transform_master, decode_qr_from_html
           master = MASTER.read_text(encoding="utf-8")
-          html = transform_master(master, "MK999999")
-          decode_qr_from_html(html, "MK999999")
+          html = transform_master(master, "MK7867370")
+          decode_qr_from_html(html, "MK7867370")
           print("Generator self-test passed.")
           PY
 
