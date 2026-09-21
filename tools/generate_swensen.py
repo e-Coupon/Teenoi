@@ -44,7 +44,7 @@ def barcode_data_uri(code: str) -> str:
             "module_height": 18.0,
             "quiet_zone": 3.0,
         }
-        output = Path(instance.write(str(target), options))
+        output = Path(instance.save(str(target), options))
         raw = output.read_bytes()
     # Re-encode once through Pillow so the output is a deterministic PNG.
     with Image.open(io.BytesIO(raw)) as img:
