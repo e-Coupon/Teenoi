@@ -14,7 +14,7 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
-COUPON_RE = re.compile(r"^MK\d{6}$")
+COUPON_RE = re.compile(r"^MK\d+$")
 QR_RE = re.compile(r'<img\s+id=["\']qr["\'][^>]*\bsrc=["\']([^"\']+)["\']', re.I)
 CODE_RE = re.compile(r'<div\s+id=["\']code["\']>([^<]+)</div>', re.I)
 ALT_RE = re.compile(r'<img\s+id=["\']qr["\'][^>]*\balt=["\']([^"\']*)["\']', re.I)
@@ -135,7 +135,7 @@ def validate_page(path: Path) -> None:
 def main() -> int:
     pages = sorted(
         p
-        for p in ROOT.glob("MK??????/(3)/index.html")
+        for p in ROOT.glob("MK*/(3)/index.html")
         if COUPON_RE.fullmatch(p.parts[-3])
     )
     if not pages:
