@@ -37,9 +37,8 @@ def barcode_data_uri(code: str) -> str:
         target = Path(td) / "barcode"
         instance = barcode.get("code128", code, writer=ImageWriter())
         options = {
-            # The coupon already shows the code above the barcode. Keep the
-            # Code 128 image bars-only so human-readable text can never overlap
-            # the bars or be clipped by the fixed display box.
+            # Do not render human-readable text inside the barcode bitmap.
+            # The coupon already displays the code above the barcode.
             "write_text": False,
             "module_width": 0.33,
             "module_height": 24.0,
@@ -47,15 +46,32 @@ def barcode_data_uri(code: str) -> str:
         }
         output = Path(instance.save(str(target), options))
         raw = output.read_bytes()
-    # Re-encode once through Pillow so the output is a deterministic PNG.
-    # The generated image deliberately contains bars only; no text is rendered
-    # inside the barcode bitmap.
-    with Image.open(io.BytesIO(raw)) as img:
-        png = io.BytesIO()
-        img.convert("RGB").save(png, format="PNG", optimize=True)
-        encoded = base64.b64encode(png.getvalue()).decode("ascii")
-    return "data:image/png;base64," + encoded
 
+    with Image.open(io.BytesIO(raw)) as img:
+        rgb = img.convert("RGB")
+        gray = rgb.convert("L")
+
+        # Hard guarantee against the visual defect where human-readable text
+        # is rendered beneath/over the bars. Keep only the dense bar region.
+        width, height = gray.size
+        dense_rows = []
+        for y in range(height):
+            dark = sum(1 for x in range(width) if gray.getpixel((x, y)) < 128)
+            if dark >= max(8, int(width * 0.18)):
+                dense_rows.append(y)
+
+        if not dense_rows:
+            fail("Generated Code 128 contains no detectable bar region")
+
+        top = max(0, min(dense_rows) - 6)
+        bottom = min(height, max(dense_rows) + 7)
+        cropped = rgb.crop((0, top, width, bottom))
+
+        png = io.BytesIO()
+        cropped.save(png, format="PNG", optimize=True)
+        encoded = base64.b64encode(png.getvalue()).decode("ascii")
+
+    return "data:image/png;base64," + encoded
 
 def replace_once(text: str, pattern: str, replacement: str, label: str) -> str:
     updated, count = re.subn(pattern, replacement, text, count=1, flags=re.I | re.S)
