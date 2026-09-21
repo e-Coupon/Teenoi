@@ -41,11 +41,41 @@ def decode_barcode(path: Path, src: str, expected: str) -> None:
         with Image.open(io.BytesIO(raw)) as img:
             if img.format != "PNG":
                 fail(path, "barcode image is not PNG")
+            assert_bars_only(path, img)
             decoded = [item.data.decode("utf-8", "strict").strip() for item in zbar_decode(img)]
     except Exception as exc:
         fail(path, f"barcode image could not be decoded: {exc}")
     if expected not in decoded:
         fail(path, f"barcode decodes to {decoded!r}, expected {expected!r}")
+
+
+def assert_bars_only(path: Path, image: Image.Image) -> None:
+    """Reject Code 128 images that contain human-readable text under the bars."""
+    gray = image.convert("L")
+    width, height = gray.size
+    dense_rows = []
+    row_dark = []
+    for y in range(height):
+        dark = sum(1 for x in range(width) if gray.getpixel((x, y)) < 128)
+        row_dark.append(dark)
+        if dark >= max(8, int(width * 0.18)):
+            dense_rows.append(y)
+
+    if not dense_rows:
+        fail(path, "barcode has no dense bar region")
+
+    top = min(dense_rows)
+    bottom = max(dense_rows)
+
+    # Any substantial dark content outside the dense bar band is treated as
+    # human-readable text or another unwanted graphic element.
+    outside_limit = max(2, int(width * 0.01))
+    for y in range(0, max(0, top - 2)):
+        if row_dark[y] > outside_limit:
+            fail(path, "barcode contains extra graphics/text above bars")
+    for y in range(min(height, bottom + 3), height):
+        if row_dark[y] > outside_limit:
+            fail(path, "barcode contains human-readable text/graphics below bars")
 
 
 def validate_page(path: Path) -> None:
