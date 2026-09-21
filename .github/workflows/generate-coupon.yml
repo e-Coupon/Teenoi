@@ -70,8 +70,16 @@ jobs:
               echo "Request/content mismatch: $request contains '$requested', filename says '$code'"
               exit 1
             fi
+            if [ -f "$code/(3)/index.html" ]; then
+              echo "Already generated: $code — removing stale request."
+              continue
+            fi
             python tools/generate_coupon.py "$code"
           done
+
+          # Requests are one-shot. Successful generations and already-completed requests
+          # are removed before validation/commit so they cannot be processed again.
+          rm -f coupon-requests/*.request
 
       - name: Validate all coupons
         if: steps.requests.outputs.has_requests == 'true'
