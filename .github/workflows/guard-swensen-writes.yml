@@ -1,0 +1,48 @@
+name: Guard Swensen coupon writes
+
+on:
+  push:
+    paths:
+      - 'Swensen/**'
+      - 'tools/generate_swensen.py'
+      - 'tools/validate_swensen.py'
+      - '.github/workflows/generate-swensen.yml'
+      - '.github/workflows/guard-swensen-writes.yml'
+  pull_request:
+    paths:
+      - 'Swensen/**'
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject direct generated-coupon edits
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            changed="$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")"
+            if printf '%s\n' "$changed" | grep -E '^Swensen/[A-Z0-9]{6,32}/\([0-9]+\)/index\.html$'; then
+              echo "Generated Swensen coupon pages must come from the Swensen generator."
+              exit 1
+            fi
+            exit 0
+          fi
+
+          changed="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          if printf '%s\n' "$changed" | grep -E '^Swensen/[A-Z0-9]{6,32}/\([0-9]+\)/index\.html$'; then
+            message="$(git log -1 --pretty=%s)"
+            if [ "$message" != "Generate Swensen coupon(s) from Master" ]; then
+              echo "Direct Swensen coupon modification detected: $message"
+              exit 1
+            fi
+          fi
+          echo "Swensen write guard passed."
