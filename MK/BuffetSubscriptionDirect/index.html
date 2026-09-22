@@ -63,6 +63,29 @@ function render(n, push) {
   img.alt = 'MK Buffet Subscription หน้า ' + n;
   box.appendChild(img);
 
+  if (n === 3) {
+    // Keep the original QR image untouched; only replace the gray code label.
+    const codeCover = document.createElement('div');
+    codeCover.style.cssText = [
+      'position:absolute','z-index:20',
+      'left:30%','top:65.05%','width:40%','height:4.5%',
+      'background:#fff','pointer-events:none'
+    ].join(';');
+    box.appendChild(codeCover);
+
+    const codeFix = document.createElement('div');
+    codeFix.textContent = 'A999999999999';
+    codeFix.style.cssText = [
+      'position:absolute','z-index:21',
+      'left:0','top:65.66%','width:100%',
+      'text-align:center','color:#a6a6a6',
+      'font-family:Arial,sans-serif','font-weight:400',
+      'line-height:1','pointer-events:none',
+      'font-size:clamp(25px,3.95vw,31px)'
+    ].join(';');
+    box.appendChild(codeFix);
+  }
+
   if (n === 1) {
     const b = document.createElement('button');
     b.id = 'hit1';
