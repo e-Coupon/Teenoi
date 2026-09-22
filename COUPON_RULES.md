@@ -91,3 +91,10 @@ For every newly generated Swensen Code 128 barcode:
 - A screenshot, resized screenshot, decorative image, reconstructed look-alike, or barcode with manually typed text is not an acceptable replacement for a real Code 128 asset.
 - Matching the reference visually is required, but **machine decoding of the actual generated PNG is the correctness test**.
 - The reference coupon `026C0D9C2D840/(1)` remains untouched while this standard is applied to future coupons.
+
+## Swensen creation standard — PERMANENT LOCK
+- The successful Swensen creation procedure used for `02689B3BD7791` is now the permanent standard for future Swensen coupon work.
+- Read-only locked standard: `Swensen/SWENSEN_STANDARD_LOCKED.md`.
+- The production reference `Swensen/026C0D9C2D840/(1)/index.html` remains the immutable visual/behavior reference.
+- Future Swensen work must follow that locked standard exactly and must not alter the reference or the locked standard during ordinary coupon creation.
+
