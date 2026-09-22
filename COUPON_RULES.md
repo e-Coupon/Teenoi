@@ -52,3 +52,13 @@ Only when every gate passes may the work be reported as complete or the deployed
 ## Core rule
 **Create new; do not damage existing.**
 **Complete = all verification gates passed in the real deployed page.**
+
+
+## Swensen barcode generation specification
+- Output the Swensen Code 128 as a real **PNG** embedded in the coupon HTML. Do not use SVG for the barcode.
+- PNG canvas: **594×120 px**, matching the established Swensen coupon barcode asset size.
+- Barcode content must be **bars only**: no human-readable text beneath the bars.
+- Encode the exact coupon code as **Code 128-B**, including the proper start, checksum, and stop patterns.
+- Scale the encoded bar/space pattern to occupy the established wide barcode area (approximately **500 px of the 594 px canvas**) while keeping it horizontally centered; do not use a fixed 2-px-per-module scale that leaves the bars unnecessarily narrow.
+- Keep the barcode black on white, vertically centered in the 120 px canvas, with balanced left/right quiet zones.
+- Verify the generated PNG by decoding/scanning it and require an exact match to the intended coupon code before the coupon can be reported complete.
