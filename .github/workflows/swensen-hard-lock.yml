@@ -5,10 +5,12 @@ on:
     paths:
       - 'Swensen/**'
       - '.github/workflows/swensen-hard-lock.yml'
+      - 'SWENSEN_COUPON_CREATION_METHOD_LOCKED.md'
   pull_request:
     paths:
       - 'Swensen/**'
       - '.github/workflows/swensen-hard-lock.yml'
+      - 'SWENSEN_COUPON_CREATION_METHOD_LOCKED.md'
 
 permissions:
   contents: read
@@ -35,6 +37,7 @@ jobs:
 
           test "$(git rev-parse "HEAD:$REF_PATH")" = "$REF_SHA"
           test "$(git rev-parse "HEAD:$STANDARD_PATH")" = "$STANDARD_SHA"
+          test "$(git rev-parse "HEAD:$METHOD_PATH")" = "$METHOD_SHA"
 
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
@@ -152,7 +155,7 @@ jobs:
             [ -n "$path" ] || continue
 
             case "$path" in
-              "$REF_PATH"|"$STANDARD_PATH"|"$LOCK_WORKFLOW")
+              "$REF_PATH"|"$STANDARD_PATH"|"$LOCK_WORKFLOW"|"$METHOD_PATH")
                 echo "Protected file touched: $path"
                 if [ "$path" = "$LOCK_WORKFLOW" ] && [ "$status" = "M" ] && [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$(git log -1 --pretty=%s)" = "Repair Swensen hard lock" ]; then
                   echo "Allowing one-time repair of the hard-lock workflow."
