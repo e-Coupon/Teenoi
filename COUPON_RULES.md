@@ -53,12 +53,41 @@ Only when every gate passes may the work be reported as complete or the deployed
 **Create new; do not damage existing.**
 **Complete = all verification gates passed in the real deployed page.**
 
+## Swensen barcode generation standard — LOCKED
+The following specification is the fixed standard for future Swensen Code 128 barcode assets.
 
-## Swensen barcode generation specification
-- Output the Swensen Code 128 as a real **PNG** embedded in the coupon HTML. Do not use SVG for the barcode.
-- PNG canvas: **594×120 px**, matching the established Swensen coupon barcode asset size.
-- Barcode content must be **bars only**: no human-readable text beneath the bars.
-- Encode the exact coupon code as **Code 128-B**, including the proper start, checksum, and stop patterns.
-- Scale the encoded bar/space pattern to occupy the established wide barcode area (approximately **500 px of the 594 px canvas**) while keeping it horizontally centered; do not use a fixed 2-px-per-module scale that leaves the bars unnecessarily narrow.
-- Keep the barcode black on white, vertically centered in the 120 px canvas, with balanced left/right quiet zones.
-- Verify the generated PNG by decoding/scanning it and require an exact match to the intended coupon code before the coupon can be reported complete.
+### A. Read-only reference
+- The existing production coupon `Swensen/026C0D9C2D840/(1)/index.html` at
+  `https://e-coupon.github.io/Teenoi/Swensen/026C0D9C2D840/%281%29/`
+  is a **read-only reference for barcode construction and visual geometry**.
+- It must never be modified, overwritten, renamed, deleted, or used as a write target when applying this standard.
+- Use its barcode implementation as the reference; do not alter the reference coupon to make a new coupon.
+
+### B. Barcode asset construction
+- Symbology: **Code 128-B**.
+- Output: a real **PNG** embedded in the coupon HTML as a Base64 data URI.
+- Do **not** generate the barcode as SVG.
+- PNG canvas: **594 × 120 px**.
+- Content: **bars only**; no human-readable text beneath the bars.
+- Background: solid **white**; bars: solid **black**.
+- The encoded bar/space pattern must use proper Code 128-B start, data, checksum, and stop patterns.
+- Scale the encoded pattern to the established **wide** barcode area, approximately **500 px of usable bar width** on the 594 px canvas.
+- Keep the barcode pattern **horizontally centered** with balanced left/right quiet zones.
+- Vertically center the barcode pattern within the 120 px canvas.
+- Do not use a fixed module scale that produces an unnecessarily narrow barcode.
+- When embedded in the Swensen coupon page, preserve the established display geometry of the reference: `#barcode` is displayed at **height: 140 px** with **width: 90%**, centered by the template CSS.
+
+### C. Verification gate
+For every newly generated Swensen Code 128 barcode:
+1. Generate the PNG from the exact intended coupon code.
+2. Inspect the resulting PNG itself.
+3. Decode/scan the barcode from the generated image.
+4. Require the decoded value to equal the intended coupon code **exactly, character-for-character**.
+5. Reject and regenerate any barcode that does not decode exactly.
+6. Only after exact decoding succeeds may the barcode be embedded into the production coupon HTML.
+7. After deployment, verify the production URL again and confirm the deployed barcode decodes to the same exact code.
+
+### D. Do not substitute visual approximation
+- A screenshot, resized screenshot, decorative image, reconstructed look-alike, or barcode with manually typed text is not an acceptable replacement for a real Code 128 asset.
+- Matching the reference visually is required, but **machine decoding of the actual generated PNG is the correctness test**.
+- The reference coupon `026C0D9C2D840/(1)` remains untouched while this standard is applied to future coupons.
