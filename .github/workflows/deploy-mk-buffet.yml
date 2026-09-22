@@ -1,10 +1,11 @@
-name: Deploy MK Buffet Subscription to GitHub Pages
+name: Deploy Teenoi site to GitHub Pages
 
 on:
   push:
     branches: ["main"]
     paths:
-      - "MK/BuffetSubscriptionDirect/index.html"
+      - "MK*/**"
+      - "index.html"
       - ".github/workflows/deploy-mk-buffet.yml"
   workflow_dispatch:
 
@@ -14,7 +15,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages-mk-buffet"
+  group: "pages-teenoi"
   cancel-in-progress: true
 
 jobs:
@@ -28,10 +29,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare site
+        shell: bash
         run: |
+          set -euo pipefail
           rm -rf _site
-          mkdir -p _site/MK/BuffetSubscriptionDirect
-          cp MK/BuffetSubscriptionDirect/index.html _site/MK/BuffetSubscriptionDirect/index.html
+          mkdir -p _site
+          rsync -a --exclude='.git' --exclude='_site' ./ _site/
+          touch _site/.nojekyll
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
