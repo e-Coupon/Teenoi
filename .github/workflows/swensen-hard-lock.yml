@@ -34,6 +34,8 @@ jobs:
           STANDARD_PATH='Swensen/SWENSEN_STANDARD_LOCKED.md'
           STANDARD_SHA='db9aae6c5c91d38997975391458647ec8b2ed14d'
           LOCK_WORKFLOW='.github/workflows/swensen-hard-lock.yml'
+          METHOD_PATH='SWENSEN_COUPON_CREATION_METHOD_LOCKED.md'
+          METHOD_SHA='3023b998a84291d63cb06fd70804b8c596a83ebe'
 
           test "$(git rev-parse "HEAD:$REF_PATH")" = "$REF_SHA"
           test "$(git rev-parse "HEAD:$STANDARD_PATH")" = "$STANDARD_SHA"
