@@ -87,7 +87,7 @@ jobs:
 
           printf '%s\n' "$diff"
 
-          if printf '%s\n' "$diff" | awk -F '\t' '$1 == "A" && $2 ~ /^Swensen\/[^/]+\/\(1\)\/index\\.html$/ {print $2}' > /tmp/new-swensen.txt && [ -s /tmp/new-swensen.txt ]; then
+          if printf '%s\n' "$diff" | awk -F '\t' '$1 == "A" && $2 ~ /^Swensen\/[^/]+\/\(1\)\/index\.html$/ {print $2}' > /tmp/new-swensen.txt && [ -s /tmp/new-swensen.txt ]; then
             mapfile -t new_swensen < /tmp/new-swensen.txt
             echo "Validating ${#new_swensen[@]} new Swensen coupon page(s)."
             python tools/validate_swensen_standard.py "${new_swensen[@]}"
