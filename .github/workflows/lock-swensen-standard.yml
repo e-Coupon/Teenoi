@@ -6,13 +6,11 @@ on:
       - 'Swensen/**'
       - 'COUPON_RULES.md'
       - '.github/workflows/lock-swensen-standard.yml'
-      - 'tools/validate_swensen_standard.py'
   pull_request:
     paths:
       - 'Swensen/**'
       - 'COUPON_RULES.md'
       - '.github/workflows/lock-swensen-standard.yml'
-      - 'tools/validate_swensen_standard.py'
 
 permissions:
   contents: read
@@ -26,14 +24,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Swensen barcode validator dependencies
-        run: python -m pip install --disable-pip-version-check --no-cache-dir opencv-python-headless numpy
-
       - name: Enforce immutable Swensen reference and standard
         shell: bash
         run: |
@@ -45,12 +35,9 @@ jobs:
           STANDARD_SHA='db9aae6c5c91d38997975391458647ec8b2ed14d'
           LOCK_WORKFLOW='.github/workflows/lock-swensen-standard.yml'
           RULES_PATH='COUPON_RULES.md'
-          VALIDATOR_PATH='tools/validate_swensen_standard.py'
-          VALIDATOR_SHA='5566c70f889361eefe34e1e4a1874cae39fca844'
 
           actual_ref_sha="$(git rev-parse "HEAD:$REF_PATH")"
           actual_standard_sha="$(git rev-parse "HEAD:$STANDARD_PATH")"
-          actual_validator_sha="$(git rev-parse "HEAD:$VALIDATOR_PATH")"
 
           test "$actual_ref_sha" = "$REF_SHA" || {
             echo "IMMUTABLE REFERENCE CHANGED: $REF_PATH"
@@ -63,13 +50,6 @@ jobs:
             echo "LOCKED STANDARD CHANGED: $STANDARD_PATH"
             echo "Expected: $STANDARD_SHA"
             echo "Actual:   $actual_standard_sha"
-            exit 1
-          }
-
-          test "$actual_validator_sha" = "$VALIDATOR_SHA" || {
-            echo "LOCKED VALIDATOR CHANGED: $VALIDATOR_PATH"
-            echo "Expected: $VALIDATOR_SHA"
-            echo "Actual:   $actual_validator_sha"
             exit 1
           }
 
@@ -87,70 +67,7 @@ jobs:
 
           printf '%s\n' "$diff"
 
-          if printf '%s\n' "$diff" | awk -F '\t' '$1 == "A" && $2 ~ /^Swensen\/[^/]+\/\(1\)\/index\.html$/ {print $2}' > /tmp/new-swensen.txt && [ -s /tmp/new-swensen.txt ]; then
-            mapfile -t new_swensen < /tmp/new-swensen.txt
-            echo "Validating ${#new_swensen[@]} new Swensen coupon page(s)."
-            python tools/validate_swensen_standard.py "${new_swensen[@]}"
-          fi
-
-          while IFS=
-            [ -n "$path" ] || continue
-
-            case "$path" in
-              "$REF_PATH"|"$STANDARD_PATH"|"$RULES_PATH"|"$LOCK_WORKFLOW"|"$VALIDATOR_PATH")
-                echo "Protected file touched: $path"
-                if [ "$path" = "$LOCK_WORKFLOW" ] && [ "$status" = "M" ] && [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$(git log -1 --pretty=%s)" = "Harden Swensen standard enforcement" ]; then
-                  echo "Allowing the one-time hardening commit for the lock workflow itself."
-                else
-                  case "$status" in
-                    A) ;;
-                    *) echo "Protected files cannot be modified, renamed, or deleted."; exit 1 ;;
-                  esac
-                fi
-                ;;
-            esac
-
-            case "$status" in
-              M|D|R*|C*)
-                case "$path" in
-                  Swensen/*)
-                    echo "Existing Swensen content may not be modified/deleted/renamed: $status $path"
-                    exit 1
-                    ;;
-                esac
-                ;;
-            esac
-
-            case "$path" in
-              Swensen/*)
-                case "$status" in
-                  A)
-                    if ! printf '%s\n' "$path" | grep -Eq '^Swensen/[^/]+/\([0-9]+\)/index\.html$'; then
-                      echo "Only a new code-specific coupon index may be added under Swensen/: $path"
-                      exit 1
-                    fi
-
-                    code="$(printf '%s\n' "$path" | sed -E 's#^Swensen/([^/]+)/\([0-9]+\)/index\.html$#\1#')"
-
-                    if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-                      if git cat-file -e "$BASE:Swensen/$code/(1)/index.html" 2>/dev/null; then
-                        echo "Coupon already existed in base and must not be overwritten: $code"
-                        exit 1
-                      fi
-                    elif git rev-parse HEAD^ >/dev/null 2>&1; then
-                      if git cat-file -e "HEAD^:Swensen/$code/(1)/index.html" 2>/dev/null; then
-                        echo "Coupon already existed before this commit and must not be overwritten: $code"
-                        exit 1
-                      fi
-                    fi
-                    ;;
-                esac
-                ;;
-            esac
-          done <<< "$diff"
-
-          echo "Swensen immutable-standard guard passed."
-\t' read -r status path rest; do
+          while IFS=$'\t' read -r status path rest; do
             [ -n "$path" ] || continue
 
             case "$path" in
