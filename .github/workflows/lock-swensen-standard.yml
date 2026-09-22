@@ -1,0 +1,122 @@
+name: Lock Swensen coupon standard
+
+on:
+  push:
+    paths:
+      - 'Swensen/**'
+      - 'COUPON_RULES.md'
+      - '.github/workflows/lock-swensen-standard.yml'
+  pull_request:
+    paths:
+      - 'Swensen/**'
+      - 'COUPON_RULES.md'
+      - '.github/workflows/lock-swensen-standard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce immutable Swensen reference and standard
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REF_PATH='Swensen/026C0D9C2D840/(1)/index.html'
+          REF_SHA='d0f1803d9fda3ae84c17c4817f499068d0a21215'
+          STANDARD_PATH='Swensen/SWENSEN_STANDARD_LOCKED.md'
+          STANDARD_SHA='db9aae6c5c91d38997975391458647ec8b2ed14d'
+          LOCK_WORKFLOW='.github/workflows/lock-swensen-standard.yml'
+          RULES_PATH='COUPON_RULES.md'
+
+          actual_ref_sha="$(git rev-parse "HEAD:$REF_PATH")"
+          actual_standard_sha="$(git rev-parse "HEAD:$STANDARD_PATH")"
+
+          test "$actual_ref_sha" = "$REF_SHA" || {
+            echo "IMMUTABLE REFERENCE CHANGED: $REF_PATH"
+            echo "Expected: $REF_SHA"
+            echo "Actual:   $actual_ref_sha"
+            exit 1
+          }
+
+          test "$actual_standard_sha" = "$STANDARD_SHA" || {
+            echo "LOCKED STANDARD CHANGED: $STANDARD_PATH"
+            echo "Expected: $STANDARD_SHA"
+            echo "Actual:   $actual_standard_sha"
+            exit 1
+          }
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            diff="$(git diff --name-status "$BASE" "$HEAD")"
+          else
+            if git rev-parse HEAD^ >/dev/null 2>&1; then
+              diff="$(git diff --name-status HEAD^ HEAD)"
+            else
+              diff="$(git diff-tree --root --no-commit-id --name-status HEAD)"
+            fi
+          fi
+
+          printf '%s\n' "$diff"
+
+          while IFS=$'\t' read -r status path rest; do
+            [ -n "$path" ] || continue
+
+            case "$path" in
+              "$REF_PATH"|"$STANDARD_PATH"|"$RULES_PATH"|"$LOCK_WORKFLOW")
+                echo "Protected file touched: $path"
+                case "$status" in
+                  A) ;;
+                  *) echo "Protected files cannot be modified, renamed, or deleted."; exit 1 ;;
+                esac
+                ;;
+            esac
+
+            case "$status" in
+              M|D|R*|C*)
+                case "$path" in
+                  Swensen/*)
+                    echo "Existing Swensen content may not be modified/deleted/renamed: $status $path"
+                    exit 1
+                    ;;
+                esac
+                ;;
+            esac
+
+            case "$path" in
+              Swensen/*)
+                case "$status" in
+                  A)
+                    if ! printf '%s\n' "$path" | grep -Eq '^Swensen/[^/]+/\([0-9]+\)/index\.html$'; then
+                      echo "Only a new code-specific coupon index may be added under Swensen/: $path"
+                      exit 1
+                    fi
+
+                    code="$(printf '%s\n' "$path" | sed -E 's#^Swensen/([^/]+)/\([0-9]+\)/index\.html$#\1#')"
+
+                    if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+                      if git cat-file -e "$BASE:Swensen/$code/(1)/index.html" 2>/dev/null; then
+                        echo "Coupon already existed in base and must not be overwritten: $code"
+                        exit 1
+                      fi
+                    elif git rev-parse HEAD^ >/dev/null 2>&1; then
+                      if git cat-file -e "HEAD^:Swensen/$code/(1)/index.html" 2>/dev/null; then
+                        echo "Coupon already existed before this commit and must not be overwritten: $code"
+                        exit 1
+                      fi
+                    fi
+                    ;;
+                esac
+                ;;
+            esac
+          done <<< "$diff"
+
+          echo "Swensen immutable-standard guard passed."
