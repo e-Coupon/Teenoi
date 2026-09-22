@@ -1,16 +1,163 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MK Buffet Subscription</title>
-  <meta http-equiv="refresh" content="0;url=https://mk-buffet-subscription-flow-0fgmb7.v2.appdeploy.ai/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>MK Buffet Subscription</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#f5f5f5;color:#222;font-family:Arial,'Noto Sans Thai',sans-serif}
+body{min-height:100vh}
+.app{width:min(100%,520px);min-height:100vh;margin:auto;background:#fff;position:relative;overflow:hidden}
+.browser{height:62px;background:#fafafa;border-bottom:1px solid #ddd;padding:8px 14px 7px;font-size:11px;line-height:1.3}
+.browser strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.browser .domain{color:#666}
+.header{height:58px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#fff;border-bottom:1px solid #eee}
+.logo{width:54px;height:28px;background:#c9142b;color:#fff;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:2px}
+.header-title{font-size:18px;font-weight:700}
+.page{min-height:calc(100vh - 120px);padding-bottom:30px}
+.hero{margin:0;background:linear-gradient(180deg,#ca1730,#7c0c1d);padding:26px 18px 30px;text-align:center;color:#fff}
+.hero .small{font-size:15px;font-weight:700;margin-bottom:4px}
+.hero .big{font-size:45px;font-weight:900;line-height:1}
+.hero .net{font-size:18px;font-weight:800;margin:3px 0 18px}
+.hero .sub{font-size:25px;font-weight:900;letter-spacing:.5px}
+.hero .date{font-size:11px;line-height:1.5;margin-top:10px}
+.package-card{margin:22px 14px;padding:26px 16px;background:#ba1c31;color:#fff;border-radius:10px;box-shadow:0 6px 14px rgba(0,0,0,.16);text-align:center}
+.package-card .limited{font-size:25px;font-weight:900;margin-bottom:8px}
+.package-card .unlimited{font-size:31px;font-weight:1000;letter-spacing:.4px}
+.package-card .desc{font-size:17px;font-weight:700;margin-top:8px}
+.package-card .price{font-size:28px;font-weight:1000;margin-top:4px}
+.receipt{margin:18px 14px;border:2px solid #ba1c31;background:#fff;color:#ba1c31;border-radius:8px;padding:15px;text-align:center;font-size:17px;font-weight:900}
+.tap{width:100%;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+.p2-top{padding:24px 14px 18px;background:#7d0e20}
+.use{display:block;width:100%;padding:17px;border:2px solid #fff;border-radius:8px;color:#fff;background:transparent;font-size:22px;font-weight:900}
+.promo{background:linear-gradient(180deg,#c31731,#7d0e20);color:#fff;text-align:center;padding:18px 12px}
+.promo-title{font-size:22px;font-weight:1000}
+.promo-main{font-size:42px;font-weight:1000;line-height:1.05}
+.offers{padding:16px 12px;background:#fff}
+.offer{border:1px solid #e6e6e6;border-radius:8px;padding:14px 12px;margin:10px 0;text-align:center;font-weight:900;font-size:18px}
+.p3{background:#f6f6f6;min-height:calc(100vh - 120px);padding:22px 14px}
+.modal{background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:20px;text-align:center}
+.modal-logo{margin:0 auto 12px;width:76px;height:34px;background:#c9142b;color:#fff;font-weight:1000;display:flex;align-items:center;justify-content:center}
+.modal-title{font-size:22px;font-weight:1000;color:#333}
+.modal-sub{font-size:14px;line-height:1.5;margin:10px 0 16px}
+.qr{width:230px;height:230px;margin:0 auto 14px;padding:8px;background:#fff;box-shadow:0 0 0 1px #ddd}
+.qr svg{width:100%;height:100%;display:block}
+.code{font-family:monospace;font-size:20px;font-weight:900;letter-spacing:2px;margin-bottom:13px}
+.valid{display:inline-block;background:#c9142b;color:#fff;border-radius:7px;padding:11px 16px;font-weight:900}
+.terms{margin-top:16px;border-top:1px solid #eee;padding-top:14px;font-weight:900;text-align:left}
+.loading{position:fixed;inset:0;z-index:20;background:rgba(255,255,255,.96);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.spinner{width:48px;height:48px;border:5px solid #ddd;border-top-color:#c9142b;border-radius:50%;animation:spin .8s linear infinite}
+.loading-text{margin-top:14px;font-weight:900;color:#444}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(min-width:700px){.app{width:520px;box-shadow:0 0 24px rgba(0,0,0,.12)}}
+</style>
 </head>
 <body>
-  <script>
-    window.location.replace('https://mk-buffet-subscription-flow-0fgmb7.v2.appdeploy.ai/');
-  </script>
-  กำลังเปิด MK Buffet Subscription...
-  <a href="https://mk-buffet-subscription-flow-0fgmb7.v2.appdeploy.ai/">กดที่นี่</a>
+<div id="app" class="app"></div>
+<script>
+const state={page:1};
+const app=document.getElementById('app');
+
+function loading(next){
+  const el=document.createElement('div');
+  el.className='loading';
+  el.innerHTML='<div class="spinner"></div><div class="loading-text">กำลังเชื่อมต่อ...</div>';
+  document.body.appendChild(el);
+  setTimeout(function(){
+    el.remove();
+    state.page=next;
+    history.pushState({page:next},'', '#page'+next);
+    render();
+  },900);
+}
+
+function header(title){
+  return '<div class="browser"><strong>MK Buffet Subscription — '+title+'</strong><div class="domain">www.thisismymk.com</div></div>'+
+         '<div class="header"><div class="logo">MK</div><div class="header-title">'+title+'</div></div>';
+}
+
+function qrSvg(){
+  const rows=[
+    '111111100101101111111',
+    '100000101001001000001',
+    '101110101111101011101',
+    '101110100010101011101',
+    '101110101110101011101',
+    '100000100000101000001',
+    '111111101010101111111',
+    '000000001101000000000',
+    '110111111001111010111',
+    '001001001110010110100',
+    '111010111011101001111',
+    '100111000100010111000',
+    '101001111011111001101',
+    '000000001111001000010',
+    '111111101001111010101',
+    '100000101111001101100',
+    '101110100010111000111',
+    '101110101111000101001',
+    '101110100101111100110',
+    '100000101110001010011',
+    '111111101001111011101'
+  ];
+  let rects='';
+  for(let y=0;y<rows.length;y++){
+    for(let x=0;x<rows[y].length;x++){
+      if(rows[y][x]==='1') rects+='<rect x="'+x+'" y="'+y+'" width="1" height="1"></rect>';
+    }
+  }
+  return '<svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-label="QR Code">'+rects+'</svg>';
+}
+
+function page1(){
+  return header('เลือกแพ็กเกจที่จะใช้')+
+  '<div class="page">'+
+  '<section class="hero"><div class="small">คุ้มเกินคุ้ม</div><div class="big">299.-</div><div class="net">NET / เดือน</div><div class="sub">MK BUFFET SUBSCRIPTION</div><div class="date">ซื้อได้ถึงวันที่ 10 ก.ย.69<br>ใช้ได้ตั้งแต่วันที่ 31 ส.ค.69 - 30 ก.ย.69</div></section>'+
+  '<button class="tap package-card" onclick="loading(2)"><div class="limited">จำกัด 100 สิทธิ์แรก</div><div class="unlimited">UNLIMITED PACKAGE</div><div class="desc">ทานได้ไม่จำกัดตลอดเดือน</div><div class="price">2,990 บาท / เดือน</div></button>'+
+  '<div class="receipt">พิมพ์ใบเสร็จรับเงิน</div>'+
+  '</div>';
+}
+
+function page2(){
+  return header('MK Buffet Subscription')+
+  '<div class="page">'+
+  '<div class="p2-top"><button class="tap use" onclick="loading(3)">ใช้แพ็กเกจ</button></div>'+
+  '<div class="promo"><div class="promo-title">MK BUFFET SUBSCRIPTION</div><div class="promo-main">คุ้มเกินคุ้ม 299.-</div></div>'+
+  '<div class="offers">'+
+  '<div class="offer">คุ้มแมกซ์ 10 ฟรี 3 &nbsp;|&nbsp; 2,990 บาท</div>'+
+  '<div class="offer">คุ้มพลัส 7 ฟรี 2 &nbsp;|&nbsp; 2,093 บาท</div>'+
+  '<div class="offer">คุ้มคุ้ม 5 ฟรี 1 &nbsp;|&nbsp; 1,495 บาท</div>'+
+  '</div></div>';
+}
+
+function page3(){
+  return header('ใช้แพ็กเกจ')+
+  '<div class="p3"><div class="modal">'+
+  '<div class="modal-logo">MK BUFFET</div>'+
+  '<div class="modal-title">MK Buffet คุ้มเกินคุ้ม 299.-</div>'+
+  '<div class="modal-sub">แสดง QR Code กับพนักงานภายใน 10 นาที เพื่อใช้สิทธิ์</div>'+
+  '<div class="qr">'+qrSvg()+'</div>'+
+  '<div class="code">BF15IC9OWHWY</div>'+
+  '<div class="valid">ใช้ได้ถึง 30 ก.ย.69</div>'+
+  '<div class="terms">เงื่อนไขการใช้บริการ ▾</div>'+
+  '</div></div>';
+}
+
+function render(){
+  if(state.page===1) app.innerHTML=page1();
+  else if(state.page===2) app.innerHTML=page2();
+  else app.innerHTML=page3();
+  window.scrollTo(0,0);
+}
+window.addEventListener('popstate',function(e){
+  const p=e.state&&e.state.page ? e.state.page : Number((location.hash.match(/page([123])/ )||[])[1]||1);
+  state.page=p;
+  render();
+});
+const m=location.hash.match(/page([123])/);
+state.page=m?Number(m[1]):1;
+render();
+</script>
 </body>
 </html>
