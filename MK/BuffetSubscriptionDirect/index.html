@@ -6,8 +6,7 @@
 <title>MK Buffet Subscription</title>
 <style>
 html,body{margin:0;padding:0;width:100%;height:100%;background:#fff;overflow:hidden}
-#app{position:relative;width:100vw;height:100vh;background:#fff}
-.screen{position:relative;width:100vw;height:100vh;overflow:hidden}
+#app,.screen{position:relative;width:100vw;height:100vh;overflow:hidden;background:#fff}
 .screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
 .hit{position:absolute;display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;background:transparent;border:0;padding:0;margin:0;z-index:10}
 #hit1{left:4.5%;top:42.5%;width:91%;height:16.5%}
@@ -21,42 +20,39 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#fff;overflow:hid
 <body>
 <div id="app"></div>
 <script>
-const sources={
-  1:'https://raw.githubusercontent.com/e-Coupon/Teenoi/735a0e1f753df82743e850046316b986bd2ba3a5/MK/BuffetSubscriptionDirect/index.html#page1',
-  2:'https://raw.githubusercontent.com/e-Coupon/Teenoi/735a0e1f753df82743e850046316b986bd2ba3a5/MK/BuffetSubscriptionDirect/index.html#page2',
-  3:'https://raw.githubusercontent.com/e-Coupon/Teenoi/03f9a1b07f710f7e2dcbc3a8426adb2a9d354520/MK/BuffetSubscriptionDirect/index.html'
-};
+const pages={1:'page1.html',2:'page2.html',3:'page3.html'};
 function showLoading(next){
   const loader=document.createElement('div');
   loader.className='loading';
   loader.innerHTML='<div class="spinner"></div><div class="loading-text">กำลังเชื่อมต่อ...</div>';
   document.body.appendChild(loader);
-  setTimeout(function(){loader.remove();render(next);},700);
+  setTimeout(()=>{loader.remove();render(next);},700);
 }
 function render(n){
   n=Math.min(3,Math.max(1,Number(n)||1));
   const app=document.getElementById('app');
-  app.innerHTML='';
   const box=document.createElement('div');
   box.className='screen';
   const frame=document.createElement('iframe');
-  frame.src=sources[n];
+  frame.src=pages[n];
   frame.title='MK Buffet Subscription หน้า '+n;
+  frame.loading='eager';
   box.appendChild(frame);
   if(n===1){
     const b=document.createElement('button');
-    b.id='hit1'; b.className='hit';
+    b.id='hit1';b.className='hit';
     b.setAttribute('aria-label','UNLIMITED PACKAGE ทานได้ไม่จำกัดตลอดเดือน 2,990 บาท / เดือน');
     b.onclick=()=>showLoading(2);
     box.appendChild(b);
   }else if(n===2){
     const b=document.createElement('button');
-    b.id='hit2'; b.className='hit';
+    b.id='hit2';b.className='hit';
     b.setAttribute('aria-label','ใช้แพ็กเกจ');
     b.onclick=()=>showLoading(3);
     box.appendChild(b);
   }
-  app.appendChild(box);
+  app.replaceChildren(box);
+  window.scrollTo(0,0);
 }
 render(1);
 </script>
