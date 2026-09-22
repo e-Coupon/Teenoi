@@ -12,3 +12,5 @@ Generation flow:
 - Deploy as `Swensen/CODE/(N)/index.html`.
 
 Old Swensen generator/validator/request-queue systems are removed. Existing coupon URLs are preserved.
+
+- Barcode asset method is fixed: generate a real **PNG 594×120 px** for Code 128-B, bars only, black on white, horizontally centered, with the bars scaled to the established wide area (approximately 500 px of the canvas). Do not generate the Swensen barcode as SVG or leave it narrow because of a fixed module scale.
