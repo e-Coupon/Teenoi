@@ -1,12 +1,13 @@
 package th.ecoupon.makrobot
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.Activity
+import android.app.AlertDialog
+import android.content.ComponentName
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
-import android.view.View
 import android.view.accessibility.AccessibilityManager
 import android.widget.Button
 import android.widget.EditText
@@ -14,7 +15,12 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import android.app.Activity
+
+private data class StandaloneMakroApp(
+    val label: String,
+    val packageName: String,
+    val componentName: ComponentName
+)
 
 class MainActivity : Activity() {
     private val accountInputs = mutableListOf<EditText>()
@@ -108,7 +114,8 @@ class MainActivity : Activity() {
 
         statusView = text("สถานะ: ${AutomationSession.status}", 15f, true, top = 14)
         page.addView(statusView)
-        page.addView(text("ข้อควรทราบ: แอปจะไม่กด Checkout / ชำระเงิน และจะหยุดเมื่อหน้าจอหรือผลค้นหาไม่ตรงกับสิ่งที่ตรวจสอบได้", 13f, false, top = 12))
+        page.addView(text("บอทจะเปิดไอคอน Makro PRO ที่ติดตั้งแยกโดยตรง ไม่เปิดหน้าเว็บใน Chrome แทน และจะหยุดหากตรวจพบว่าอยู่คนละแอป", 13f, false, top = 12))
+        page.addView(text("ข้อควรทราบ: แอปจะไม่กด Checkout / ชำระเงิน และจะหยุดเมื่อหน้าจอหรือผลค้นหาไม่ตรงกับสิ่งที่ตรวจสอบได้", 13f, false, top = 8))
 
         setContentView(scroll)
         refreshHandler.post(refreshRunnable)
@@ -139,14 +146,83 @@ class MainActivity : Activity() {
             products = products,
             deliverySearch = locationInput.text.toString().trim(),
             phone = phoneInput.text.toString().trim(),
-            address = addressInput.text.toString().trim()
+            address = addressInput.text.toString().trim(),
+            targetPackage = ""
         )
-        AutomationSession.start(config)
+        chooseStandaloneMakroApp(config)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun findStandaloneMakroApps(): List<StandaloneMakroApp> {
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return packageManager.queryIntentActivities(launcherIntent, 0)
+            .mapNotNull { info ->
+                val activity = info.activityInfo ?: return@mapNotNull null
+                if (!activity.enabled || !activity.exported || activity.packageName == packageName) {
+                    return@mapNotNull null
+                }
+                val label = info.loadLabel(packageManager)?.toString()?.trim().orEmpty()
+                if (!label.contains("makro", ignoreCase = true) &&
+                    !activity.packageName.contains("makro", ignoreCase = true)) {
+                    return@mapNotNull null
+                }
+                StandaloneMakroApp(
+                    label = if (label.isBlank()) "Makro PRO" else label,
+                    packageName = activity.packageName,
+                    componentName = ComponentName(activity.packageName, activity.name)
+                )
+            }
+            .distinctBy { it.packageName }
+            .sortedWith(
+                compareByDescending<StandaloneMakroApp> { it.label.contains("pro", ignoreCase = true) }
+                    .thenBy { it.label }
+            )
+    }
+
+    private fun chooseStandaloneMakroApp(config: BotConfig) {
+        val apps = findStandaloneMakroApps()
+        when {
+            apps.isEmpty() -> {
+                Toast.makeText(
+                    this,
+                    "ไม่พบไอคอนแอป Makro PRO ที่ติดตั้งแยก กรุณาติดตั้งเป็นแอปบนหน้าจอหลักก่อน",
+                    Toast.LENGTH_LONG
+                ).show()
+                AutomationSession.status = "ไม่พบแอป Makro PRO ที่ติดตั้งแยก"
+                statusView.text = "สถานะ: ${AutomationSession.status}"
+            }
+            apps.size == 1 -> startAutomation(config, apps.first())
+            else -> {
+                val labels = apps.map { "${it.label}  (${it.packageName})" }.toTypedArray()
+                AlertDialog.Builder(this)
+                    .setTitle("เลือกไอคอน Makro PRO ที่ติดตั้งแยก")
+                    .setItems(labels) { _, index -> startAutomation(config, apps[index]) }
+                    .setNegativeButton("ยกเลิก", null)
+                    .show()
+            }
+        }
+    }
+
+    private fun startAutomation(config: BotConfig, app: StandaloneMakroApp) {
+        val targetConfig = config.copy(targetPackage = app.packageName)
+        AutomationSession.start(targetConfig)
         // Clear the visible password immediately. The active run keeps it only in RAM.
         passwordInput.setText("")
-        statusView.text = "สถานะ: ${AutomationSession.status}"
-        Toast.makeText(this, "เริ่มเปิด Makro PRO", Toast.LENGTH_SHORT).show()
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://account.makro.pro")))
+        statusView.text = "สถานะ: กำลังเปิดไอคอน ${app.label}"
+
+        val launchIntent = Intent(Intent.ACTION_MAIN)
+            .addCategory(Intent.CATEGORY_LAUNCHER)
+            .setComponent(app.componentName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        try {
+            startActivity(launchIntent)
+            Toast.makeText(this, "เปิดแอป Makro PRO ที่ติดตั้งแยกแล้ว", Toast.LENGTH_SHORT).show()
+        } catch (error: Exception) {
+            AutomationSession.stop("เปิดไอคอน Makro PRO ไม่สำเร็จ")
+            statusView.text = "สถานะ: ${AutomationSession.status}"
+            Toast.makeText(this, "เปิดไอคอน Makro PRO ไม่สำเร็จ", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun isAutomationEnabled(): Boolean {

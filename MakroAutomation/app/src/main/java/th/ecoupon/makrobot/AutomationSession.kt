@@ -7,7 +7,8 @@ data class BotConfig(
     val products: List<ProductTask>,
     val deliverySearch: String,
     val phone: String,
-    val address: String
+    val address: String,
+    val targetPackage: String
 )
 
 /** Runtime-only session. Credentials are deliberately never written to preferences or files. */
@@ -24,7 +25,7 @@ object AutomationSession {
         config = value
         accountIndex = 0
         productIndex = 0
-        status = "เตรียมเปิด Makro PRO"
+        status = "เตรียมเปิดแอป Makro PRO ที่ติดตั้งแยก"
         running = true
         pendingStart = true
         service?.beginFromPending()

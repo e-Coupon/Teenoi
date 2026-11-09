@@ -13,8 +13,8 @@ import android.view.accessibility.AccessibilityNodeInfo
 
 /**
  * Conservative UI automation for the exact Makro PRO flow recorded by the user.
- * It never checks out, submits payment, or attempts to bypass account verification.
- * When a screen cannot be identified safely, it stops and reports the blocker.
+ * It only operates in the selected installed Makro PRO app window. It never checks
+ * out, submits payment, or attempts to bypass account verification.
  */
 class MakroAccessibilityService : AccessibilityService() {
     private enum class Step {
@@ -63,7 +63,7 @@ class MakroAccessibilityService : AccessibilityService() {
         locationScrollAttempts = 0
         initialSessionChecked = false
         loggingOutInitialSession = false
-        move(Step.WAIT_LANDING, "รอหน้า Makro PRO")
+        move(Step.WAIT_LANDING, "รอเปิดไอคอน Makro PRO ที่ติดตั้งแยก")
         scheduleNext()
     }
 
@@ -115,6 +115,20 @@ class MakroAccessibilityService : AccessibilityService() {
         }
         val root = rootInActiveWindow ?: return
 
+        // Never type or tap into Chrome, the bot itself, or any other unrelated app.
+        val activePackage = root.packageName?.toString().orEmpty()
+        if (config.targetPackage.isBlank() || activePackage != config.targetPackage) {
+            if (step == Step.WAIT_LANDING) {
+                AutomationSession.status = "กำลังรอหน้าต่างของไอคอน Makro PRO ที่เลือก"
+                waitOrBlock("ไม่พบหน้าต่างของแอป Makro PRO ที่เลือก (หน้าต่างปัจจุบัน: $activePackage)")
+            } else {
+                move(Step.BLOCKED, "หน้าจอเปลี่ยนออกจากแอป Makro PRO — หยุดเพื่อป้องกันการกรอกผิดแอป")
+                AutomationSession.running = false
+                AutomationSession.config = null
+            }
+            return
+        }
+
         // Verification prompts are not automated or bypassed.
         if (containsAny(root, "กรอกรหัส OTP", "ยืนยันรหัส OTP", "ส่งรหัส OTP", "รหัสยืนยันทาง SMS", "captcha", "CAPTCHA")) {
             move(Step.BLOCKED, "หน้าจอขอ OTP/CAPTCHA — หยุดให้ผู้ใช้ตรวจสอบ")
@@ -138,12 +152,12 @@ class MakroAccessibilityService : AccessibilityService() {
                 } else if (containsAny(root, "ยินดีต้อนรับ", "เข้าสู่ระบบ", "ลงทะเบียน")) {
                     move(Step.CLICK_LOGIN, "พบหน้าเริ่มต้น เข้าสู่ระบบ")
                 } else {
-                    waitOrBlock("ไม่พบหน้าเริ่มต้น Makro PRO")
+                    waitOrBlock("ไม่พบหน้าเริ่มต้น Makro PRO ในไอคอนแยก")
                 }
             }
 
             Step.CLICK_LOGIN -> {
-                if (hasEditable(root, "เบอร์มือถือ", "เบอร์มือถือหรืออีเมล")) {
+                if (findEditableOrSingle(root, "เบอร์มือถือ", "เบอร์มือถือหรืออีเมล") != null) {
                     move(Step.ENTER_ID, "กรอก ID บัญชี")
                 } else if (clickText(root, "เข้าสู่ระบบ")) {
                     acted()
@@ -158,18 +172,18 @@ class MakroAccessibilityService : AccessibilityService() {
                     finishAll()
                     return
                 }
-                val field = findEditable(root, "เบอร์มือถือ", "อีเมล")
+                val field = findEditableOrSingle(root, "เบอร์มือถือ", "อีเมล")
                 if (field != null && setText(field, id)) {
                     move(Step.SUBMIT_ID, "กรอก ID บัญชี ${AutomationSession.accountIndex + 1}/${config.accounts.size}")
                 } else {
-                    waitOrBlock("ไม่พบช่องเบอร์มือถือหรืออีเมล")
+                    waitOrBlock("ไม่พบช่องเบอร์มือถือหรืออีเมลที่แก้ไขได้")
                 }
             }
 
             Step.SUBMIT_ID -> {
                 if (clickText(root, "เริ่มช้อปเลย") || clickText(root, "ต่อไป")) {
                     move(Step.ENTER_PASSWORD, "รอหน้ากรอกรหัสผ่าน")
-                } else if (hasEditable(root, "รหัสผ่าน")) {
+                } else if (findEditableOrSingle(root, "รหัสผ่าน") != null) {
                     move(Step.ENTER_PASSWORD, "พบช่องรหัสผ่าน")
                 } else {
                     waitOrBlock("ไม่พบปุ่มไปยังหน้ารหัสผ่าน")
@@ -177,11 +191,11 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.ENTER_PASSWORD -> {
-                val field = findEditable(root, "รหัสผ่าน")
+                val field = findEditableOrSingle(root, "รหัสผ่าน")
                 if (field != null && setText(field, config.password)) {
                     move(Step.SUBMIT_PASSWORD, "กรอกรหัสผ่านกลาง")
                 } else {
-                    waitOrBlock("ไม่พบช่องรหัสผ่าน")
+                    waitOrBlock("ไม่พบช่องรหัสผ่านที่แก้ไขได้")
                 }
             }
 
@@ -210,15 +224,15 @@ class MakroAccessibilityService : AccessibilityService() {
                     return
                 }
                 val field = findEditable(root, "ค้นหาสินค้า")
+                    ?: if (isHome(root)) findSingleEditable(root) else null
                 if (field != null && setText(field, product.code)) {
                     move(Step.SUBMIT_SEARCH, "ค้นหารหัสสินค้า ${product.code}")
                 } else {
-                    waitOrBlock("ไม่พบช่องค้นหาสินค้า")
+                    waitOrBlock("ไม่พบช่องค้นหาสินค้าที่แก้ไขได้")
                 }
             }
 
             Step.SUBMIT_SEARCH -> {
-                val field = findEditable(root, "ค้นหาสินค้า")
                 val sent = tapNormalized(0.94f, 0.875f)
                 if (!sent) performGlobalAction(GLOBAL_ACTION_BACK)
                 move(Step.WAIT_RESULTS, "รอผลค้นหาสินค้า")
@@ -248,7 +262,7 @@ class MakroAccessibilityService : AccessibilityService() {
                 if (quantityAdded < product.quantity) {
                     if (clickPlus(root)) {
                         quantityAdded += 1
-                        AutomationSession.status = "เพิ่ม ${product.code}: ${quantityAdded}/${product.quantity}"
+                        AutomationSession.status = "เพิ่ม ${product.code}: $quantityAdded/${product.quantity}"
                         acted()
                         if (quantityAdded >= product.quantity) {
                             move(Step.ENTER_PRODUCT, "เพิ่ม ${product.code} ครบ ${product.quantity} หน่วย")
@@ -287,12 +301,12 @@ class MakroAccessibilityService : AccessibilityService() {
 
             Step.SEARCH_LOCATION -> {
                 val field = findEditable(root, "ค้นหาสถานที่", "ค้นหาที่อยู่", "ค้นหาพิกัด")
-                    ?: findEditable(root)
+                    ?: if (containsAny(root, "เลือกพิกัดที่อยู่")) findSingleEditable(root) else null
                 if (field != null && setText(field, config.deliverySearch)) {
                     move(Step.SELECT_LOCATION, "ค้นหาหมุด ${config.deliverySearch}")
                     tapNormalized(0.94f, 0.875f)
                 } else {
-                    waitOrBlock("ไม่พบช่องค้นหาสถานที่บนแผนที่")
+                    waitOrBlock("ไม่พบช่องค้นหาสถานที่บนแผนที่ที่แก้ไขได้")
                 }
             }
 
@@ -334,7 +348,9 @@ class MakroAccessibilityService : AccessibilityService() {
             Step.WAIT_ADDRESS_FORM -> move(Step.EDIT_CONTACT, "เปิดแบบฟอร์มข้อมูลที่อยู่")
 
             Step.EDIT_CONTACT -> {
-                if (hasEditable(root, "เบอร์โทรศัพท์")) {
+                val phoneField = findEditable(root, "เบอร์โทรศัพท์")
+                    ?: if (containsAny(root, "ข้อมูลการติดต่อ", "แก้ไขข้อมูลการติดต่อ")) findSingleEditable(root) else null
+                if (phoneField != null) {
                     move(Step.ENTER_PHONE, "แก้ไขเบอร์โทรศัพท์ผู้รับ")
                 } else if (clickText(root, "แก้ไขข้อมูลการติดต่อ", "แก้ไข")) {
                     acted()
@@ -346,11 +362,11 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.ENTER_PHONE -> {
-                val field = findEditable(root, "เบอร์โทรศัพท์")
+                val field = findEditable(root, "เบอร์โทรศัพท์") ?: findSingleEditable(root)
                 if (field != null && setText(field, config.phone)) {
                     move(Step.SAVE_CONTACT, "กรอกเบอร์โทรศัพท์แล้ว")
                 } else {
-                    waitOrBlock("ไม่พบช่องเบอร์โทรศัพท์ในหน้าต่างข้อมูลติดต่อ")
+                    waitOrBlock("ไม่พบช่องเบอร์โทรศัพท์ที่แก้ไขได้")
                 }
             }
 
@@ -367,11 +383,11 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.ENTER_ADDRESS -> {
-                val field = findEditable(root, "ที่อยู่")
+                val field = findEditable(root, "ที่อยู่") ?: findSingleEditable(root)
                 if (field != null && setText(field, config.address)) {
                     move(Step.SAVE_ADDRESS, "กรอกที่อยู่ ${config.address}")
                 } else {
-                    waitOrBlock("ไม่พบช่องที่อยู่")
+                    waitOrBlock("ไม่พบช่องที่อยู่ที่แก้ไขได้เพียงช่องเดียว")
                 }
             }
 
@@ -481,9 +497,21 @@ class MakroAccessibilityService : AccessibilityService() {
 
     private fun findEditable(root: AccessibilityNodeInfo, vararg tokens: String): AccessibilityNodeInfo? =
         allNodes(root).firstOrNull { n ->
-            n.isVisibleToUser && n.isEditable &&
+            n.isVisibleToUser && n.isEnabled && n.isEditable &&
                 (tokens.isEmpty() || tokens.any { nodeText(n).contains(it.lowercase()) })
         }
+
+    // A WebAPK/WebView may expose the HTML input as editable but omit its hint text.
+    // Use an unlabelled field only when it is the sole editable field on that screen.
+    private fun findSingleEditable(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        val editable = allNodes(root).filter { n ->
+            n.isVisibleToUser && n.isEnabled && n.isEditable
+        }
+        return editable.singleOrNull()
+    }
+
+    private fun findEditableOrSingle(root: AccessibilityNodeInfo, vararg tokens: String): AccessibilityNodeInfo? =
+        findEditable(root, *tokens) ?: findSingleEditable(root)
 
     private fun hasEditable(root: AccessibilityNodeInfo, vararg tokens: String): Boolean =
         findEditable(root, *tokens) != null
