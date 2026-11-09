@@ -14,9 +14,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import android.app.Activity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
     private val accountInputs = mutableListOf<EditText>()
     private val productCodeInputs = mutableListOf<EditText>()
     private val quantityInputs = mutableListOf<EditText>()
