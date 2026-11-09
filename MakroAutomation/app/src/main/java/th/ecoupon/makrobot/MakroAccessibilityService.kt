@@ -331,7 +331,7 @@ class MakroAccessibilityService : AccessibilityService() {
                     move(Step.ENTER_PHONE, "แก้ไขเบอร์โทรศัพท์ผู้รับ")
                 } else if (clickText(root, "แก้ไขข้อมูลการติดต่อ", "แก้ไข")) {
                     acted()
-                } else if (tapNormalized(0.89f, 0.165f)) {
+                } else if (tapNormalized(0.89f, 0.135f)) {
                     acted()
                 } else {
                     waitOrBlock("ไม่พบปุ่มแก้ไขข้อมูลการติดต่อ")
@@ -348,12 +348,12 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.SAVE_CONTACT -> {
-                if (!hasEditable(root, "เบอร์โทรศัพท์") && hasEditable(root, "ที่อยู่")) {
-                    move(Step.ENTER_ADDRESS, "กลับสู่แบบฟอร์มที่อยู่")
-                } else if (clickText(root, "ปิด", "close", "บันทึก", "ยืนยัน")) {
-                    acted()
+                // In the recording, the contact editor is a modal with an X in its
+                // upper-right corner; there is no separate Save button in that modal.
+                if (clickText(root, "ปิด", "close")) {
+                    move(Step.ENTER_ADDRESS, "ปิดหน้าต่างข้อมูลติดต่อแล้ว")
                 } else if (tapNormalized(0.885f, 0.165f)) {
-                    acted()
+                    move(Step.ENTER_ADDRESS, "ปิดหน้าต่างข้อมูลติดต่อแล้ว")
                 } else {
                     waitOrBlock("ปิดหน้าต่างข้อมูลติดต่อไม่ได้")
                 }
@@ -535,8 +535,8 @@ class MakroAccessibilityService : AccessibilityService() {
         if (Build.VERSION.SDK_INT < 24) return false
         val metrics = resources.displayMetrics
         val path = Path().apply {
-            moveTo(metrics.widthPixels * 0.50f, metrics.heightPixels * 0.53f)
-            lineTo(metrics.widthPixels * 0.50f, metrics.heightPixels * 0.30f)
+            moveTo(metrics.widthPixels * 0.50f, metrics.heightPixels * 0.43f)
+            lineTo(metrics.widthPixels * 0.50f, metrics.heightPixels * 0.27f)
         }
         val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 420))
