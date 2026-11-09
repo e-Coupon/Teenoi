@@ -264,6 +264,8 @@ class MakroAccessibilityService : AccessibilityService() {
                     move(Step.OPEN_ADDRESS, "อยู่ในตะกร้าแล้ว")
                 } else if (clickText(root, "ตะกร้า", "รถเข็น", "cart")) {
                     acted()
+                } else if (tapNormalized(0.90f, 0.065f)) {
+                    acted()
                 } else {
                     waitOrBlock("ไม่พบไอคอนตะกร้าสินค้า")
                 }
