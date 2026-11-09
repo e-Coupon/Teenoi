@@ -225,15 +225,21 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.WAIT_RESULTS -> {
+                val searched = config.products.getOrNull(AutomationSession.productIndex)
                 if (containsAny(root, "ไม่พบสินค้า", "ไม่พบสินค้าที่ค้นหา")) {
-                    move(Step.BLOCKED, "ไม่พบสินค้า ${config.products.getOrNull(AutomationSession.productIndex)?.code}")
+                    move(Step.BLOCKED, "ไม่พบสินค้า ${searched?.code}")
                     AutomationSession.running = false
                     AutomationSession.config = null
                 } else if (hasPlusControl(root)) {
                     quantityAdded = 0
-                    move(Step.ADD_PRODUCT, "พบผลค้นหา กำลังเพิ่มจำนวน")
+                    move(Step.ADD_PRODUCT, "พบปุ่มเพิ่มสินค้า กำลังเพิ่มจำนวน")
+                } else if (searched != null &&
+                    SystemClock.uptimeMillis() - stepStartedAt > 1_800L &&
+                    hasProductResultCard(root, searched.code)) {
+                    quantityAdded = 0
+                    move(Step.ADD_PRODUCT, "พบการ์ดสินค้าและราคา กำลังเพิ่มจำนวน")
                 } else {
-                    waitOrBlock("ไม่พบปุ่มเพิ่มสินค้า (+) ในผลค้นหา")
+                    waitOrBlock("ไม่พบการ์ดสินค้าหรือปุ่มเพิ่มสินค้าในผลค้นหา")
                 }
             }
 
@@ -514,6 +520,16 @@ class MakroAccessibilityService : AccessibilityService() {
         if (clickable != null) return clickable.performAction(AccessibilityNodeInfo.ACTION_CLICK)
         val candidate = candidates.firstOrNull() ?: return false
         return clickNode(candidate)
+    }
+
+    private fun hasProductResultCard(root: AccessibilityNodeInfo, code: String): Boolean {
+        val nodes = allNodes(root).filter { it.isVisibleToUser }
+        val queryStillVisible = nodes.any { it.text?.toString()?.contains(code, ignoreCase = true) == true }
+        val priceVisible = nodes.any {
+            val value = nodeText(it)
+            value.contains("฿") || value.contains("บาท")
+        }
+        return queryStillVisible && priceVisible
     }
 
     private fun hasPlusControl(root: AccessibilityNodeInfo): Boolean =
