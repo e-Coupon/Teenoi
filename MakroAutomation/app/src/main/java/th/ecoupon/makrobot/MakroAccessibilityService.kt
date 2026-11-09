@@ -299,7 +299,10 @@ class MakroAccessibilityService : AccessibilityService() {
                 } else if (containsAny(root, "สร้างที่อยู่", "ข้อมูลการติดต่อ")) {
                     move(Step.EDIT_CONTACT, "เข้าสู่แบบฟอร์มสร้างที่อยู่")
                 } else if (locationScrollAttempts < 5 &&
-                    SystemClock.uptimeMillis() - lastActionAt > 1_200L) {
+                    (if (locationScrollAttempts == 0)
+                        SystemClock.uptimeMillis() - stepStartedAt > 2_500L
+                    else
+                        SystemClock.uptimeMillis() - lastActionAt > 1_200L)) {
                     if (scrollLocationResults(root)) {
                         locationScrollAttempts += 1
                         lastActionAt = SystemClock.uptimeMillis()
@@ -379,7 +382,12 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.OPEN_MENU -> {
-                if (containsAny(root, "ออกจากระบบ")) {
+                if (containsAny(root, "ตะกร้า(", "ตะกร้าสินค้า")) {
+                    // The recording returns from the cart to the catalogue before
+                    // opening the hamburger account drawer.
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    acted()
+                } else if (containsAny(root, "ออกจากระบบ")) {
                     move(Step.CLICK_LOGOUT, "พบเมนูออกจากระบบ")
                 } else if (clickText(root, "เมนู", "menu")) {
                     acted()
