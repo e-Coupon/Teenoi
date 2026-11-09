@@ -33,6 +33,7 @@ class MakroAccessibilityService : AccessibilityService() {
     private var initialSessionChecked = false
     private var loggingOutInitialSession = false
     private var quantityAdded = 0
+    private var locationScrollAttempts = 0
     private val handler = Handler(Looper.getMainLooper())
     private var loopPosted = false
 
@@ -59,6 +60,7 @@ class MakroAccessibilityService : AccessibilityService() {
         AutomationSession.accountIndex = 0
         AutomationSession.productIndex = 0
         quantityAdded = 0
+        locationScrollAttempts = 0
         initialSessionChecked = false
         loggingOutInitialSession = false
         move(Step.WAIT_LANDING, "รอหน้า Makro PRO")
@@ -296,8 +298,19 @@ class MakroAccessibilityService : AccessibilityService() {
                     if (clickNode(exact)) move(Step.CONFIRM_LOCATION, "เลือกผลค้นหา The Kim")
                 } else if (containsAny(root, "สร้างที่อยู่", "ข้อมูลการติดต่อ")) {
                     move(Step.EDIT_CONTACT, "เข้าสู่แบบฟอร์มสร้างที่อยู่")
-                } else {
-                    waitOrBlock("ไม่พบผลค้นหาที่ตรงกับ The Kim — หยุดเพื่อป้องกันการปักหมุดผิด")
+                } else if (locationScrollAttempts < 5 &&
+                    SystemClock.uptimeMillis() - lastActionAt > 1_200L) {
+                    if (scrollLocationResults(root)) {
+                        locationScrollAttempts += 1
+                        lastActionAt = SystemClock.uptimeMillis()
+                        AutomationSession.status = "เลื่อนดูผลค้นหา The Kim (ครั้งที่ ${locationScrollAttempts})"
+                    } else {
+                        waitOrBlock("ไม่สามารถเลื่อนผลค้นหาสถานที่ได้")
+                    }
+                } else if (locationScrollAttempts >= 5) {
+                    move(Step.BLOCKED, "ไม่พบผลค้นหาที่ตรงกับ The Kim — หยุดเพื่อป้องกันการปักหมุดผิด")
+                    AutomationSession.running = false
+                    AutomationSession.config = null
                 }
             }
 
@@ -513,6 +526,23 @@ class MakroAccessibilityService : AccessibilityService() {
 
     private fun isHome(root: AccessibilityNodeInfo): Boolean =
         containsAny(root, "ค้นหาสินค้า") && containsAny(root, "PRO Mall", "หมวดหมู่", "รวมแบรนด์เด็ด")
+
+    private fun scrollLocationResults(root: AccessibilityNodeInfo): Boolean {
+        val scrollable = allNodes(root).firstOrNull { it.isVisibleToUser && it.isScrollable }
+        if (scrollable != null && scrollable.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)) {
+            return true
+        }
+        if (Build.VERSION.SDK_INT < 24) return false
+        val metrics = resources.displayMetrics
+        val path = Path().apply {
+            moveTo(metrics.widthPixels * 0.50f, metrics.heightPixels * 0.53f)
+            lineTo(metrics.widthPixels * 0.50f, metrics.heightPixels * 0.30f)
+        }
+        val gesture = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, 420))
+            .build()
+        return dispatchGesture(gesture, null, null)
+    }
 
     private fun tapNormalized(x: Float, y: Float): Boolean {
         val metrics = resources.displayMetrics
