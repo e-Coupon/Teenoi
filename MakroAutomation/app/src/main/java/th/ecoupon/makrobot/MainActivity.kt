@@ -77,7 +77,7 @@ class MainActivity : Activity() {
 
         page.addView(text("ข้อมูลจัดส่ง", 19f, true, top = 20))
         page.addView(text("สถานที่สำหรับค้นหาหมุด", 14f, true, top = 8))
-        locationInput = input("ร้าน The Kim บางปะกง", InputType.TYPE_CLASS_TEXT).apply { setText("ร้าน The Kim บางปะกง") }
+        locationInput = input("ร้าน The Kim บางปะกง", InputType.TYPE_CLASS_TEXT).apply { setText("ร้านthe kim") }
         page.addView(locationInput)
         page.addView(text("เบอร์โทรศัพท์ผู้รับ", 14f, true, top = 8))
         phoneInput = input("0945674577", InputType.TYPE_CLASS_PHONE).apply { setText("0945674577") }
