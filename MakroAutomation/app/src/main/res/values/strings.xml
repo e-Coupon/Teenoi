@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">ใช้ควบคุมหน้าจอ Makro PRO ตามรายการที่ผู้ใช้กำหนด โดยหยุดเมื่อพบหน้าจอที่ไม่ตรงกับขั้นตอนที่รู้จัก</string>
+</resources>
