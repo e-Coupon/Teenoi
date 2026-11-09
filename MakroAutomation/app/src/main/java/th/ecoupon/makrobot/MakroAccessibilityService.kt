@@ -32,6 +32,7 @@ class MakroAccessibilityService : AccessibilityService() {
     private var stepStartedAt = 0L
     private var lastActionAt = 0L
     private var initialSessionChecked = false
+    private var loggingOutInitialSession = false
     private var quantityAdded = 0
     private val handler = Handler(Looper.getMainLooper())
     private var loopPosted = false
@@ -60,6 +61,7 @@ class MakroAccessibilityService : AccessibilityService() {
         AutomationSession.productIndex = 0
         quantityAdded = 0
         initialSessionChecked = false
+        loggingOutInitialSession = false
         move(Step.WAIT_LANDING, "รอหน้า Makro PRO")
         scheduleNext()
     }
@@ -113,7 +115,7 @@ class MakroAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
 
         // Verification prompts are not automated or bypassed.
-        if (containsAny(root, "รหัส OTP", "ยืนยัน OTP", "รหัสยืนยันทาง SMS", "captcha", "CAPTCHA")) {
+        if (containsAny(root, "กรอกรหัส OTP", "ยืนยันรหัส OTP", "ส่งรหัส OTP", "รหัสยืนยันทาง SMS", "captcha", "CAPTCHA")) {
             move(Step.BLOCKED, "หน้าจอขอ OTP/CAPTCHA — หยุดให้ผู้ใช้ตรวจสอบ")
             AutomationSession.running = false
             AutomationSession.config = null
@@ -127,6 +129,7 @@ class MakroAccessibilityService : AccessibilityService() {
                 if (isHome(root)) {
                     if (!initialSessionChecked && AutomationSession.accountIndex == 0) {
                         initialSessionChecked = true
+                        loggingOutInitialSession = true
                         move(Step.OPEN_MENU, "พบว่ามีบัญชีล็อกอินค้างอยู่ กำลังออกจากระบบก่อนเริ่ม ID แรก")
                     } else {
                         move(Step.OPEN_MENU, "กำลังเปิดเมนูบัญชี")
@@ -288,7 +291,9 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.SELECT_LOCATION -> {
-                val exact = findText(root, "The Kim")
+                val exact = allNodes(root).firstOrNull { n ->
+                    n.isVisibleToUser && !n.isEditable && nodeText(n).contains("the kim")
+                }
                 if (exact != null) {
                     if (clickNode(exact)) move(Step.CONFIRM_LOCATION, "เลือกผลค้นหา The Kim")
                 } else if (containsAny(root, "สร้างที่อยู่", "ข้อมูลการติดต่อ")) {
@@ -311,9 +316,11 @@ class MakroAccessibilityService : AccessibilityService() {
             Step.WAIT_ADDRESS_FORM -> move(Step.EDIT_CONTACT, "เปิดแบบฟอร์มข้อมูลที่อยู่")
 
             Step.EDIT_CONTACT -> {
-                if (containsAny(root, "เบอร์โทรศัพท์")) {
+                if (hasEditable(root, "เบอร์โทรศัพท์")) {
                     move(Step.ENTER_PHONE, "แก้ไขเบอร์โทรศัพท์ผู้รับ")
-                } else if (clickText(root, "แก้ไขข้อมูลการติดต่อ", "ข้อมูลการติดต่อ", "แก้ไข")) {
+                } else if (clickText(root, "แก้ไขข้อมูลการติดต่อ", "แก้ไข")) {
+                    acted()
+                } else if (tapNormalized(0.89f, 0.105f)) {
                     acted()
                 } else {
                     waitOrBlock("ไม่พบปุ่มแก้ไขข้อมูลการติดต่อ")
@@ -330,12 +337,14 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.SAVE_CONTACT -> {
-                if (containsAny(root, "สร้างที่อยู่", "รหัสไปรษณีย์")) {
+                if (!hasEditable(root, "เบอร์โทรศัพท์") && hasEditable(root, "ที่อยู่")) {
                     move(Step.ENTER_ADDRESS, "กลับสู่แบบฟอร์มที่อยู่")
-                } else if (clickText(root, "บันทึก", "ยืนยัน")) {
+                } else if (clickText(root, "ปิด", "close", "บันทึก", "ยืนยัน")) {
+                    acted()
+                } else if (tapNormalized(0.885f, 0.105f)) {
                     acted()
                 } else {
-                    waitOrBlock("ไม่พบปุ่มบันทึกข้อมูลติดต่อ")
+                    waitOrBlock("ปิดหน้าต่างข้อมูลติดต่อไม่ได้")
                 }
             }
 
@@ -380,14 +389,12 @@ class MakroAccessibilityService : AccessibilityService() {
 
             Step.WAIT_LOGOUT -> {
                 if (containsAny(root, "ยินดีต้อนรับ", "เข้าสู่ระบบ", "ลงทะเบียน")) {
-                    val next = AutomationSession.accountIndex + 1
-                    if (next >= config.accounts.size) {
-                        finishAll()
+                    continueAfterLogout(config)
+                } else if (isHome(root)) {
+                    if (tapNormalized(0.10f, 0.055f)) {
+                        continueAfterLogout(config)
                     } else {
-                        AutomationSession.accountIndex = next
-                        AutomationSession.productIndex = 0
-                        quantityAdded = 0
-                        move(Step.CLICK_LOGIN, "ออกจากระบบแล้ว เริ่มบัญชี ${next + 1}/${config.accounts.size}")
+                        waitOrBlock("เปิดเมนูหลังออกจากระบบไม่ได้")
                     }
                 } else {
                     waitOrBlock("ออกจากระบบไม่สำเร็จหรือไม่พบหน้าเข้าสู่ระบบ")
@@ -395,6 +402,23 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.DONE, Step.BLOCKED -> Unit
+        }
+    }
+
+    private fun continueAfterLogout(config: BotConfig) {
+        if (loggingOutInitialSession) {
+            loggingOutInitialSession = false
+            move(Step.CLICK_LOGIN, "ออกจากระบบเดิมแล้ว เริ่มบัญชีแรก")
+            return
+        }
+        val next = AutomationSession.accountIndex + 1
+        if (next >= config.accounts.size) {
+            finishAll()
+        } else {
+            AutomationSession.accountIndex = next
+            AutomationSession.productIndex = 0
+            quantityAdded = 0
+            move(Step.CLICK_LOGIN, "ออกจากระบบแล้ว เริ่มบัญชี ${next + 1}/${config.accounts.size}")
         }
     }
 
