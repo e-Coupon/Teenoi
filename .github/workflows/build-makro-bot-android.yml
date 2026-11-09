@@ -1,0 +1,41 @@
+name: Build Makro PRO Bot APK
+
+on:
+  push:
+    branches: [makro-pro-bot]
+    paths:
+      - "MakroAutomation/**"
+      - ".github/workflows/build-makro-bot-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        run: gradle -p MakroAutomation :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: makro-pro-bot-debug-apk
+          path: MakroAutomation/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
