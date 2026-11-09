@@ -36,6 +36,9 @@ class MakroAccessibilityService : AccessibilityService() {
     private var locationScrollAttempts = 0
     private val handler = Handler(Looper.getMainLooper())
     private var loopPosted = false
+    // A WebAPK launches through Chrome; Accessibility may report Chrome's package
+    // even though the selected launcher component belongs to org.chromium.webapk.
+    private var observedWindowPackage: String? = null
 
     private val loop = object : Runnable {
         override fun run() {
@@ -63,6 +66,7 @@ class MakroAccessibilityService : AccessibilityService() {
         locationScrollAttempts = 0
         initialSessionChecked = false
         loggingOutInitialSession = false
+        observedWindowPackage = null
         move(Step.WAIT_LANDING, "รอเปิดไอคอน Makro PRO ที่ติดตั้งแยก")
         scheduleNext()
     }
@@ -113,19 +117,32 @@ class MakroAccessibilityService : AccessibilityService() {
             AutomationSession.stop("ไม่พบข้อมูลตั้งค่างาน")
             return
         }
-        val root = rootInActiveWindow ?: return
+        val root = rootInActiveWindow ?: run {
+            AutomationSession.status = "รออ่านหน้าจอ Makro PRO — Accessibility ยังไม่พบหน้าต่างที่ใช้งาน"
+            return
+        }
 
-        // Never type or tap into Chrome, the bot itself, or any other unrelated app.
+        // WebAPK launcher packages are org.chromium.webapk.*, but Chromium can expose
+        // the active WebContents window to Accessibility as com.android.chrome.
+        // Bind that window only after Makro-specific page content is detected, then
+        // keep the same package locked for the rest of this run.
         val activePackage = root.packageName?.toString().orEmpty()
-        if (config.targetPackage.isBlank() || activePackage != config.targetPackage) {
-            if (step == Step.WAIT_LANDING) {
-                AutomationSession.status = "กำลังรอหน้าต่างของไอคอน Makro PRO ที่เลือก"
-                waitOrBlock("ไม่พบหน้าต่างของแอป Makro PRO ที่เลือก (หน้าต่างปัจจุบัน: $activePackage)")
+        val lockedPackage = observedWindowPackage
+        if (lockedPackage == null) {
+            val isSelectedLauncher = config.targetPackage.isNotBlank() && activePackage == config.targetPackage
+            val isMakroContent = isMakroSurface(root)
+            if (step == Step.WAIT_LANDING && (isSelectedLauncher || isMakroContent)) {
+                observedWindowPackage = activePackage
+                AutomationSession.status = "ตรวจพบหน้าต่าง Makro PRO ($activePackage)"
             } else {
-                move(Step.BLOCKED, "หน้าจอเปลี่ยนออกจากแอป Makro PRO — หยุดเพื่อป้องกันการกรอกผิดแอป")
-                AutomationSession.running = false
-                AutomationSession.config = null
+                AutomationSession.status = "กำลังรอหน้าต่าง Makro PRO (หน้าต่างปัจจุบัน: $activePackage)"
+                waitOrBlock("ยังยืนยันหน้าต่าง Makro PRO ไม่ได้ — ไม่สั่งแตะหน้าจอแอปอื่น")
+                return
             }
+        } else if (activePackage != lockedPackage) {
+            move(Step.BLOCKED, "หน้าจอเปลี่ยนจาก Makro PRO ไปยังแอปอื่น — หยุดเพื่อป้องกันการกรอกผิดแอป")
+            AutomationSession.running = false
+            AutomationSession.config = null
             return
         }
 
@@ -471,6 +488,18 @@ class MakroAccessibilityService : AccessibilityService() {
         lastActionAt = SystemClock.uptimeMillis()
     }
 
+
+    private fun isMakroSurface(root: AccessibilityNodeInfo): Boolean {
+        val text = allNodes(root).asSequence()
+            .filter { it.isVisibleToUser }
+            .map { nodeText(it) }
+            .joinToString(" ")
+        return listOf(
+            "makro", "makro.pro", "pro mall", "ค้นหาสินค้า",
+            "เบอร์มือถือหรืออีเมล", "เริ่มช้อปเลย"
+        ).any { text.contains(it, ignoreCase = true) }
+    }
+
     private fun allNodes(root: AccessibilityNodeInfo?): List<AccessibilityNodeInfo> {
         if (root == null) return emptyList()
         val out = mutableListOf<AccessibilityNodeInfo>()
@@ -526,8 +555,11 @@ class MakroAccessibilityService : AccessibilityService() {
         var current: AccessibilityNodeInfo? = node
         var depth = 0
         while (current != null && depth < 7) {
-            if (current.isClickable && current.isEnabled) {
-                return current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            // Some Chromium/WebAPK virtual nodes advertise clickability but reject
+            // ACTION_CLICK. Keep walking ancestors, then use a real tap on bounds.
+            if (current.isClickable && current.isEnabled &&
+                current.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                return true
             }
             current = current.parent
             depth++
@@ -542,9 +574,10 @@ class MakroAccessibilityService : AccessibilityService() {
         val candidates = allNodes(root).filter { n ->
             n.isVisibleToUser && tokens.any { nodeText(n).contains(it.lowercase()) }
         }
-        val clickable = candidates.firstOrNull { it.isClickable && it.isEnabled }
-        if (clickable != null) return clickable.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        val candidate = candidates.firstOrNull() ?: return false
+        val candidate = candidates.firstOrNull { it.isClickable && it.isEnabled }
+            ?: candidates.firstOrNull()
+            ?: return false
+        // Always use clickNode so failed ACTION_CLICK calls fall back to a screen tap.
         return clickNode(candidate)
     }
 
