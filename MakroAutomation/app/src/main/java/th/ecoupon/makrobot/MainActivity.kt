@@ -167,7 +167,7 @@ class MainActivity : Activity() {
         EditText(this).apply {
             hint = hintText
             inputType = type
-            singleLine = true
+            setSingleLine(true)
             textSize = 16f
             setPadding(dp(12), dp(7), dp(12), dp(7))
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(54)).apply {
