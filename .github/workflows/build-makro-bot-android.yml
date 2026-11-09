@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      MAKRO_SIGNING_KEYSTORE: ${{ runner.temp }}/makro-signing/makro-debug.keystore
+      MAKRO_SIGNING_KEYSTORE: ${{ github.workspace }}/MakroAutomation/.signing/debug.keystore
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
       - name: Restore stable debug signing key
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/makro-signing/makro-debug.keystore
+          path: MakroAutomation/.signing/debug.keystore
           key: makro-pro-bot-stable-signing-v1
 
       - name: Create stable debug signing key when missing
