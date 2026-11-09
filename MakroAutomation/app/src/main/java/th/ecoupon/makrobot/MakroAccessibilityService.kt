@@ -520,8 +520,12 @@ class MakroAccessibilityService : AccessibilityService() {
     private fun clickPlus(root: AccessibilityNodeInfo): Boolean {
         val candidate = allNodes(root).firstOrNull { isPlusNode(it) && it.isClickable && it.isEnabled }
             ?: allNodes(root).firstOrNull { isPlusNode(it) }
-            ?: return false
-        return clickNode(candidate)
+        if (candidate != null) return clickNode(candidate)
+
+        // The recording shows the first result's red circular "+" at about
+        // x=47%, y=75% of the portrait viewport. Use it only when no accessible
+        // plus node exists; the next screen-state tick still checks the page.
+        return tapNormalized(0.47f, 0.75f)
     }
 
     private fun isHome(root: AccessibilityNodeInfo): Boolean =
