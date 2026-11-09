@@ -297,9 +297,7 @@ class MakroAccessibilityService : AccessibilityService() {
             }
 
             Step.SELECT_LOCATION -> {
-                val exact = allNodes(root).firstOrNull { n ->
-                    n.isVisibleToUser && !n.isEditable && nodeText(n).contains("the kim")
-                }
+                val exact = findTheKimBangPakongResult(root)
                 if (exact != null) {
                     if (clickNode(exact)) move(Step.CONFIRM_LOCATION, "เลือกผลค้นหา The Kim")
                 } else if (containsAny(root, "สร้างที่อยู่", "ข้อมูลการติดต่อ")) {
@@ -317,7 +315,7 @@ class MakroAccessibilityService : AccessibilityService() {
                         waitOrBlock("ไม่สามารถเลื่อนผลค้นหาสถานที่ได้")
                     }
                 } else if (locationScrollAttempts >= 5) {
-                    move(Step.BLOCKED, "ไม่พบผลค้นหาที่ตรงกับ The Kim — หยุดเพื่อป้องกันการปักหมุดผิด")
+                    move(Step.BLOCKED, "ไม่พบผลค้นหา The Kim ที่อยู่บางปะกง — หยุดเพื่อป้องกันการปักหมุดผิด")
                     AutomationSession.running = false
                     AutomationSession.config = null
                 }
@@ -520,6 +518,25 @@ class MakroAccessibilityService : AccessibilityService() {
         if (clickable != null) return clickable.performAction(AccessibilityNodeInfo.ACTION_CLICK)
         val candidate = candidates.firstOrNull() ?: return false
         return clickNode(candidate)
+    }
+
+    private fun findTheKimBangPakongResult(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        val candidates = allNodes(root).filter { n ->
+            n.isVisibleToUser && !n.isEditable && nodeText(n).contains("the kim")
+        }
+        for (candidate in candidates) {
+            var current: AccessibilityNodeInfo? = candidate
+            var depth = 0
+            while (current != null && depth <= 2) {
+                val context = nodeText(current)
+                if (context.contains("บางปะกง") || context.contains("bang pakong")) {
+                    return candidate
+                }
+                current = current.parent
+                depth++
+            }
+        }
+        return null
     }
 
     private fun hasProductResultCard(root: AccessibilityNodeInfo, code: String): Boolean {
