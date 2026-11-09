@@ -10,7 +10,6 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import kotlin.math.max
 
 /**
  * Conservative UI automation for the exact Makro PRO flow recorded by the user.
@@ -218,11 +217,8 @@ class MakroAccessibilityService : AccessibilityService() {
 
             Step.SUBMIT_SEARCH -> {
                 val field = findEditable(root, "ค้นหาสินค้า")
-                val sent = field?.performAction(AccessibilityNodeInfo.ACTION_IME_ENTER) == true
-                if (!sent) {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
-                    clickText(root, "ค้นหา")
-                }
+                val sent = tapNormalized(0.94f, 0.875f)
+                if (!sent) performGlobalAction(GLOBAL_ACTION_BACK)
                 move(Step.WAIT_RESULTS, "รอผลค้นหาสินค้า")
             }
 
@@ -264,7 +260,7 @@ class MakroAccessibilityService : AccessibilityService() {
                     move(Step.OPEN_ADDRESS, "อยู่ในตะกร้าแล้ว")
                 } else if (clickText(root, "ตะกร้า", "รถเข็น", "cart")) {
                     acted()
-                } else if (tapNormalized(0.90f, 0.065f)) {
+                } else if (tapNormalized(0.90f, 0.080f)) {
                     acted()
                 } else {
                     waitOrBlock("ไม่พบไอคอนตะกร้าสินค้า")
@@ -286,7 +282,7 @@ class MakroAccessibilityService : AccessibilityService() {
                     ?: findEditable(root)
                 if (field != null && setText(field, config.deliverySearch)) {
                     move(Step.SELECT_LOCATION, "ค้นหาหมุด ${config.deliverySearch}")
-                    field.performAction(AccessibilityNodeInfo.ACTION_IME_ENTER)
+                    tapNormalized(0.94f, 0.875f)
                 } else {
                     waitOrBlock("ไม่พบช่องค้นหาสถานที่บนแผนที่")
                 }
@@ -322,7 +318,7 @@ class MakroAccessibilityService : AccessibilityService() {
                     move(Step.ENTER_PHONE, "แก้ไขเบอร์โทรศัพท์ผู้รับ")
                 } else if (clickText(root, "แก้ไขข้อมูลการติดต่อ", "แก้ไข")) {
                     acted()
-                } else if (tapNormalized(0.89f, 0.105f)) {
+                } else if (tapNormalized(0.89f, 0.165f)) {
                     acted()
                 } else {
                     waitOrBlock("ไม่พบปุ่มแก้ไขข้อมูลการติดต่อ")
@@ -343,7 +339,7 @@ class MakroAccessibilityService : AccessibilityService() {
                     move(Step.ENTER_ADDRESS, "กลับสู่แบบฟอร์มที่อยู่")
                 } else if (clickText(root, "ปิด", "close", "บันทึก", "ยืนยัน")) {
                     acted()
-                } else if (tapNormalized(0.885f, 0.105f)) {
+                } else if (tapNormalized(0.885f, 0.165f)) {
                     acted()
                 } else {
                     waitOrBlock("ปิดหน้าต่างข้อมูลติดต่อไม่ได้")
@@ -374,7 +370,7 @@ class MakroAccessibilityService : AccessibilityService() {
                     move(Step.CLICK_LOGOUT, "พบเมนูออกจากระบบ")
                 } else if (clickText(root, "เมนู", "menu")) {
                     acted()
-                } else if (tapNormalized(0.10f, 0.055f)) {
+                } else if (tapNormalized(0.10f, 0.080f)) {
                     acted()
                 } else {
                     waitOrBlock("เปิดเมนูบัญชีไม่ได้")
