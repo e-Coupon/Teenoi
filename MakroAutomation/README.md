@@ -19,7 +19,7 @@ The bot intentionally does not tap **เช็คเอาท์**, place an ord
 
 ## Standalone app targeting
 
-- The Start button now searches Android's launcher list for the installed app whose name contains **Makro**, then launches that app's actual launcher activity. It does not open `https://account.makro.pro` in the default browser.
+- The Start button searches Android's launcher list for the installed app whose name contains **Makro**, then launches that app's actual launcher activity. It does not open `https://account.makro.pro` in the default browser.
 - If more than one matching icon exists, it asks which installed Makro icon to use.
 - The Accessibility service checks the active window's package against the selected app package before it can type or tap. If the device switches to another app, the run stops instead of typing into the wrong window.
 - Some installed web apps do not expose the HTML input hint to Android Accessibility. In that case, the bot can use an editable field only when it is the sole editable field on that screen. It does not guess between multiple unlabeled fields.
@@ -40,9 +40,9 @@ The password is held only in runtime memory for the active run. It is not writte
 
 The prototype stops rather than guessing when it cannot identify a required screen, product-add control, or exact `The Kim` search result. If Makro displays an OTP/CAPTCHA verification challenge, the bot stops for the account holder; it does not bypass that challenge. It does not attempt checkout/payment.
 
-## Build
+## Build and signing
 
-A GitHub Actions workflow builds a debug APK on pushes to this branch. The workflow caches its debug signing key so subsequent APKs are signed consistently while that cache remains available. The existing older APK was built before this fixed-key cache; install the new build cleanly once, then later builds can update it without another uninstall (provided the signing-key cache is retained).
+The GitHub Actions build creates a dedicated debug signing key on the first run and stores it in the repository's Actions cache. Later builds reuse that same key while the cache is retained, so new APKs can update the installed app. Cache retention is not a permanent signing-key backup; for a long-lived production app, move the keystore into protected repository Actions secrets. The older APKs were signed with different temporary keys and must be uninstalled once before installing this stable-key build.
 
 ## Prototype status / required device test
 

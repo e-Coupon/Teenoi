@@ -3,6 +3,8 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def stableDebugKeystorePath = System.getenv("MAKRO_SIGNING_KEYSTORE")
+
 android {
     namespace 'th.ecoupon.makrobot'
     compileSdk 35
@@ -11,8 +13,27 @@ android {
         applicationId 'th.ecoupon.makrobot'
         minSdk 26
         targetSdk 35
-        versionCode 2
-        versionName '0.2.0'
+        versionCode 3
+        versionName '0.3.0'
+    }
+
+    // CI uses the same cached keystore for each build so APK updates keep
+    // the same signing identity. Local builds retain the standard debug key.
+    if (stableDebugKeystorePath != null && !stableDebugKeystorePath.trim().isEmpty()) {
+        signingConfigs {
+            ciDebug {
+                storeFile file(stableDebugKeystorePath)
+                storeType 'JKS'
+                storePassword 'android'
+                keyAlias 'makro-pro-bot-debug'
+                keyPassword 'android'
+            }
+        }
+        buildTypes {
+            debug {
+                signingConfig signingConfigs.ciDebug
+            }
+        }
     }
 
     compileOptions {
